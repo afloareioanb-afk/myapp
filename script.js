@@ -55,9 +55,9 @@ if (typeof URLSearchParams === 'undefined') {
 const META_KEYS = ["app_name", "po_name", "app_type", "app_type_other"];
 const YESNO_KEYS = [
   // SLO/SLA
-  "slo_exists", "slo_need_support",
+  "slo_exists",
   // DR
-  "dr_plan", "dr_rto_rpo", "dr_tested", "dr_need_support",
+  "dr_plan", "dr_rto_rpo", "dr_tested",
   // Best Practices
   "bp_runbooks", "bp_spof", "bp_noise", "bp_mttr",
 ];
@@ -100,14 +100,12 @@ function createYesNo(container, key) {
   container.appendChild(yes);
   container.appendChild(no);
   
-  // Only add N/A option for non-SRE support questions (as the last option)
-  if (!key.includes('need_support')) {
-    const na = document.createElement('span');
-    na.className = 'pill na';
-    na.textContent = 'N/A';
-    na.addEventListener('click', function() { setAnswer(key, 'na'); });
-    container.appendChild(na);
-  }
+  // Add N/A option for all questions
+  const na = document.createElement('span');
+  na.className = 'pill na';
+  na.textContent = 'N/A';
+  na.addEventListener('click', function() { setAnswer(key, 'na'); });
+  container.appendChild(na);
 }
 
 function getState() {
@@ -382,14 +380,14 @@ function convertToCSV(data) {
     rows.push(['  Availability SLO', data.slo_availability ? 'Yes' : 'No']);
     rows.push(['  Error Budget Defined', data.slo_error_budget ? 'Yes' : 'No']);
   }
-  rows.push(['Need SRE Support (SLO)', data.slo_need_support ? 'Yes' : 'No']);
+  
   rows.push([]);
   
   // Add DR
   rows.push(['DR Plan Documented', data.dr_plan ? 'Yes' : 'No']);
   rows.push(['RTO/RPO Defined', data.dr_rto_rpo ? 'Yes' : 'No']);
   rows.push(['DR Plan Tested (12 months)', data.dr_tested ? 'Yes' : 'No']);
-  rows.push(['Need SRE Support (DR)', data.dr_need_support ? 'Yes' : 'No']);
+  
   rows.push([]);
   
   // Add Best Practices
@@ -495,17 +493,10 @@ function hydrateSelections(state) {
     pills.forEach(function(p){ p.classList.remove('selected'); });
     const val = state[key];
     
-    // Handle different pill arrangements based on question type
-    if (key.includes('need_support')) {
-      // Need SRE support questions only have Yes/No pills (index 0 and 1)
-      if (val === true && pills[0]) pills[0].classList.add('selected');
-      if (val === false && pills[1]) pills[1].classList.add('selected');
-    } else {
-      // Regular questions have Yes/No/N/A pills (index 0, 1, and 2)
-      if (val === true && pills[0]) pills[0].classList.add('selected');
-      if (val === false && pills[1]) pills[1].classList.add('selected');
-      if (val === 'na' && pills[2]) pills[2].classList.add('selected');
-    }
+    // All questions have Yes/No/N/A pills (index 0, 1, and 2)
+    if (val === true && pills[0]) pills[0].classList.add('selected');
+    if (val === false && pills[1]) pills[1].classList.add('selected');
+    if (val === 'na' && pills[2]) pills[2].classList.add('selected');
   });
 
   // hydrate provider chips selection state
@@ -690,10 +681,6 @@ function renderProgress(state) {
   total += YESNO_KEYS.length;
   answered += YESNO_KEYS.map(function(k){ 
     const v = state[k];
-    // For "Need SRE support" questions, only count Yes/No (no N/A)
-    if (k.includes('need_support')) {
-      return v === true || v === false;
-    }
     return v === true || v === false || v === 'na';
   }).filter(function(answered){ return answered; }).length;
   
@@ -718,17 +705,13 @@ function renderProgress(state) {
       }
     });
   });
-  // SLO sub-questions always count in total
-  total += 3;
+  // SLO sub-questions only count when slo_exists is true
   if (state.slo_exists === true) {
-    // When SLO exists, count actual answers to sub-questions
+    total += 3;
     ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
       const v = state[k];
       if (v===true||v===false||v==='na') answered += 1;
     });
-  } else {
-    // When SLO doesn't exist or is N/A, sub-questions are auto-set to N/A and count as answered
-    answered += 3;
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');

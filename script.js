@@ -747,12 +747,14 @@ function renderProgress(state) {
   if (state.app_name && state.app_name.trim()) answered += 1;
   if (state.po_name && state.po_name.trim()) answered += 1;
   
-  // Count yes/no across keys and generated location flags
-  total += YESNO_KEYS.length;
-  answered += YESNO_KEYS.map(function(k){ 
+  // Only count YESNO_KEYS if they have been answered
+  YESNO_KEYS.forEach(function(k){ 
     const v = state[k];
-    return v === true || v === false || v === 'na';
-  }).filter(function(answered){ return answered; }).length;
+    if (v === true || v === false || v === 'na') {
+      total += 1;
+      answered += 1;
+    }
+  });
   
   const locs = state.loc_selected ? [state.loc_selected] : [];
   locs.forEach(function(loc){
@@ -775,17 +777,19 @@ function renderProgress(state) {
       }
     });
   });
-  // SLO sub-questions always count in total (3 questions)
-  total += 3;
-  if (state.slo_exists === true) {
-    // When SLO exists, count actual answers to sub-questions
-    ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
-      const v = state[k];
-      if (v===true||v===false||v==='na') answered += 1;
-    });
-  } else {
-    // When SLO doesn't exist or is N/A, sub-questions are auto-set to N/A and count as answered
-    answered += 3;
+  // SLO sub-questions only count when slo_exists is answered
+  if (state.slo_exists === true || state.slo_exists === false || state.slo_exists === 'na') {
+    total += 3;
+    if (state.slo_exists === true) {
+      // When SLO exists, count actual answers to sub-questions
+      ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
+        const v = state[k];
+        if (v===true||v===false||v==='na') answered += 1;
+      });
+    } else {
+      // When SLO doesn't exist or is N/A, sub-questions are auto-set to N/A and count as answered
+      answered += 3;
+    }
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');

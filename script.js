@@ -62,10 +62,7 @@ const YESNO_KEYS = [
   "bp_runbooks", "bp_spof", "bp_noise", "bp_mttr",
 ];
 
-const CONDITIONAL_KEYS = [
-  // SLO sub-questions (only count when slo_exists is true)
-  "slo_latency", "slo_availability", "slo_error_budget"
-];
+
 
 const LOCATIONS = ["gcp", "onprem", "hybrid"];
 const CAPABILITIES = ["frontend", "backend", "apis"];
@@ -126,11 +123,7 @@ function getState() {
     state[key] = param === '1' ? true : param === '0' ? false : param === 'na' ? 'na' : null;
   });
   
-  // Conditional keys (only count when their parent question is true)
-  CONDITIONAL_KEYS.forEach(function(key) {
-    const param = params.get(key);
-    state[key] = param === '1' ? true : param === '0' ? false : param === 'na' ? 'na' : null;
-  });
+
   // Locations schema: locations[loc][capability] yes/no and drilldowns
   state.locations = {};
   LOCATIONS.forEach(function(loc) {

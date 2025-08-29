@@ -51,6 +51,10 @@ if (typeof URLSearchParams === 'undefined') {
   };
 }
 
+// Version info
+const APP_VERSION = "1.2.0";
+const BUILD_DATE = "2024-12-19";
+
 // New schema keys
 const META_KEYS = ["app_name", "po_name", "app_type", "app_type_other"];
 const YESNO_KEYS = [
@@ -830,6 +834,14 @@ function applyStat(el, text, pctText) {
   else el.classList.add('stat-orange');
 }
 
+function updateVersionDisplay() {
+  const versionBadge = document.querySelector('.version-badge');
+  const buildDate = document.querySelector('.build-date');
+  
+  if (versionBadge) versionBadge.textContent = 'v' + APP_VERSION;
+  if (buildDate) buildDate.textContent = BUILD_DATE;
+}
+
 // Initialize when DOM is ready
 window.addEventListener('DOMContentLoaded', function() {
   // build meta inputs
@@ -859,5 +871,9 @@ window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('export-json').addEventListener('click', exportJSON);
   document.getElementById('export-csv').addEventListener('click', exportCSV);
   document.getElementById('reset').addEventListener('click', resetAll);
+  
+  // Update version display
+  updateVersionDisplay();
+  
   render();
 });

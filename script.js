@@ -55,7 +55,7 @@ if (typeof URLSearchParams === 'undefined') {
 const META_KEYS = ["app_name", "po_name", "app_type", "app_type_other"];
 const YESNO_KEYS = [
   // SLO/SLA
-  "slo_exists",
+  "slo_exists", "slo_latency", "slo_availability", "slo_error_budget",
   // DR
   "dr_plan", "dr_rto_rpo", "dr_tested",
   // Best Practices
@@ -705,13 +705,11 @@ function renderProgress(state) {
       }
     });
   });
-  // SLO sub-questions only count when slo_exists is true
-  if (state.slo_exists === true) {
-    total += 3;
-    ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
-      const v = state[k];
-      if (v===true||v===false||v==='na') answered += 1;
-    });
+  // SLO sub-questions are counted in YESNO_KEYS, but we need to adjust the total
+  // since they should only count when slo_exists is true
+  if (state.slo_exists !== true) {
+    // Remove the 3 SLO sub-questions from total when SLO doesn't exist
+    total -= 3;
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');

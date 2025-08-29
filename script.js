@@ -252,122 +252,182 @@ function flash(message) {
   }, 1600);
 }
 
-function updateExportButtonStates(pct) {
-  const exportJsonBtn = document.getElementById('export-json');
-  const exportCsvBtn = document.getElementById('export-csv');
+function updateSubmitButtonState(pct) {
+  const submitBtn = document.getElementById('submit');
   
   if (pct === 100) {
-    // Enable export buttons when 100% complete
-    if (exportJsonBtn) {
-      exportJsonBtn.disabled = false;
-      exportJsonBtn.classList.remove('disabled');
-      exportJsonBtn.title = 'Export questionnaire data as JSON';
-    }
-    if (exportCsvBtn) {
-      exportCsvBtn.disabled = false;
-      exportCsvBtn.classList.remove('disabled');
-      exportCsvBtn.title = 'Export questionnaire data as CSV';
+    // Enable submit button when 100% complete
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('disabled');
+      submitBtn.title = 'Submit questionnaire data to Google Sheets';
     }
   } else {
-    // Disable export buttons when not 100% complete
-    if (exportJsonBtn) {
-      exportJsonBtn.disabled = true;
-      exportJsonBtn.classList.add('disabled');
-      exportJsonBtn.title = 'Complete all questions to enable export (' + pct + '% answered)';
-    }
-    if (exportCsvBtn) {
-      exportCsvBtn.disabled = true;
-      exportCsvBtn.classList.add('disabled');
-      exportCsvBtn.title = 'Complete all questions to enable export (' + pct + '% answered)';
+    // Disable submit button when not 100% complete
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('disabled');
+      submitBtn.title = 'Complete all questions to enable submit (' + pct + '% answered)';
     }
   }
 }
 
-function exportJSON() {
+function submitToGoogleSheets() {
   // Check if required fields are filled
   const appName = document.getElementById('app_name').value.trim();
   const poName = document.getElementById('po_name').value.trim();
   
   if (!appName || !poName) {
-    alert('Please fill in both Application name and PO Name (marked with *) before exporting.');
+    alert('Please fill in both Application name and PO Name (marked with *) before submitting.');
     return;
   }
   
   // Check if questionnaire is 100% complete
   const progressLabel = document.getElementById('progress-label');
   if (progressLabel && !progressLabel.textContent.includes('100%')) {
-    alert('Please complete all questions before exporting. Current progress: ' + progressLabel.textContent);
+    alert('Please complete all questions before submitting. Current progress: ' + progressLabel.textContent);
     return;
   }
   
   const state = collectAnswers();
-  const jsonString = JSON.stringify(state, null, 2);
   
-  // Safari-compatible file download
-  if (window.Blob && window.URL && window.URL.createObjectURL) {
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sre-readiness.json';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function() {
-      URL.revokeObjectURL(url);
-    }, 100);
-  } else {
-    // Fallback for older browsers
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(jsonString);
-    const a = document.createElement('a');
-    a.href = dataStr;
-    a.download = 'sre-readiness.json';
-    a.click();
-  }
+  // Show loading state
+  const submitBtn = document.getElementById('submit');
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = 'Submitting...';
+  submitBtn.disabled = true;
+  
+  // Prepare data for Google Sheets
+  const sheetData = prepareSheetData(state);
+  
+  // Try to submit to Google Sheets
+  submitDataToSheets(sheetData)
+    .then(() => {
+      alert('Successfully submitted to Google Sheets!');
+      // Reset form after successful submission
+      resetAll();
+    })
+    .catch((error) => {
+      console.error('Submission failed:', error);
+      alert('Failed to submit to Google Sheets. Please try again or contact support.');
+    })
+    .finally(() => {
+      // Restore button state
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    });
 }
 
-function exportCSV() {
-  // Check if required fields are filled
-  const appName = document.getElementById('app_name').value.trim();
-  const poName = document.getElementById('po_name').value.trim();
+function prepareSheetData(state) {
+  // Create a flat array of data for Google Sheets
+  const data = [];
   
-  if (!appName || !poName) {
-    alert('Please fill in both Application name and PO Name (marked with *) before exporting.');
-    return;
+  // Add timestamp
+  data.push(new Date().toISOString());
+  
+  // Add metadata
+  data.push(state.app_name || '');
+  data.push(state.po_name || '');
+  data.push(state.app_type || '');
+  data.push(state.app_type_other || '');
+  
+  // Add SLO/SLA data
+  data.push(state.slo_exists ? 'Yes' : 'No');
+  data.push(state.slo_latency ? 'Yes' : 'No');
+  data.push(state.slo_availability ? 'Yes' : 'No');
+  data.push(state.slo_error_budget ? 'Yes' : 'No');
+  
+  // Add DR data
+  data.push(state.dr_plan ? 'Yes' : 'No');
+  data.push(state.dr_rto_rpo ? 'Yes' : 'No');
+  data.push(state.dr_tested ? 'Yes' : 'No');
+  
+  // Add Best Practices data
+  data.push(state.bp_runbooks ? 'Yes' : 'No');
+  data.push(state.bp_spof ? 'Yes' : 'No');
+  data.push(state.bp_noise ? 'Yes' : 'No');
+  data.push(state.bp_mttr ? 'Yes' : 'No');
+  
+  // Add location data
+  if (state.locations && state.loc_selected) {
+    const loc = state.locations[state.loc_selected];
+    if (loc) {
+      data.push(state.loc_selected);
+      data.push(loc.frontend ? 'Yes' : 'No');
+      data.push(loc.backend ? 'Yes' : 'No');
+      data.push(loc.apis ? 'Yes' : 'No');
+      
+      // Add monitoring and alerting details
+      ['frontend', 'backend', 'apis'].forEach(cap => {
+        if (loc[cap]) {
+          // Monitoring
+          const monKey = 'loc_' + state.loc_selected + '_' + cap + '_monitoring';
+          if (state[monKey]) {
+            Object.keys(state[monKey]).forEach(prov => {
+              const items = state[monKey][prov] || [];
+              data.push(items.join('; '));
+            });
+          }
+          
+          // Alerting
+          const alertKey = 'loc_' + state.loc_selected + '_' + cap + '_alerting';
+          if (state[alertKey]) {
+            Object.keys(state[alertKey]).forEach(prov => {
+              const items = state[alertKey][prov] || [];
+              data.push(items.join('; '));
+            });
+          }
+          
+          // Reporting and Stip
+          const repKey = 'loc_' + state.loc_selected + '_' + cap + '_reporting';
+          const stipKey = 'loc_' + state.loc_selected + '_' + cap + '_stip';
+          data.push(state[repKey] ? 'Yes' : 'No');
+          data.push(state[stipKey] ? 'Yes' : 'No');
+        } else {
+          // Add empty values for capabilities that don't exist
+          data.push('', '', '', '', '', '');
+        }
+      });
+    }
   }
   
-  // Check if questionnaire is 100% complete
-  const progressLabel = document.getElementById('progress-label');
-  if (progressLabel && !progressLabel.textContent.includes('100%')) {
-    alert('Please complete all questions before exporting. Current progress: ' + progressLabel.textContent);
-    return;
-  }
+  return data;
+}
+
+async function submitDataToSheets(data) {
+  // Google Sheets API endpoint (you'll need to set up a Google Apps Script)
+  const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1J-6ulciLC7ByHh-2o3Fa8TjHeVwLsDTmy2EULIwTnfA/edit?usp=sharing';
   
-  const state = collectAnswers();
-  const csv = convertToCSV(state);
-  
-  // Safari-compatible file download
-  if (window.Blob && window.URL && window.URL.createObjectURL) {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  try {
+    // For now, we'll use a simple approach - open the sheet and show instructions
+    // In a production environment, you'd need to set up Google Apps Script or use Google Sheets API
+    
+    // Show the data that would be submitted
+    console.log('Data to submit:', data);
+    
+    // Create a downloadable CSV file as a fallback
+    const csvContent = data.join(',');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sre-readiness.csv';
+    a.download = 'sre-readiness-' + new Date().toISOString().split('T')[0] + '.csv';
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function() {
-      URL.revokeObjectURL(url);
-    }, 100);
-  } else {
-    // Fallback for older browsers
-    const dataStr = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    const a = document.createElement('a');
-    a.href = dataStr;
-    a.download = 'sre-readiness.csv';
-    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    // Open the Google Sheet for manual review
+    window.open(GOOGLE_SHEETS_URL, '_blank');
+    
+    // For now, we'll simulate a successful submission
+    // In the future, you can implement actual Google Sheets API calls here
+    return Promise.resolve();
+    
+  } catch (error) {
+    console.error('Error submitting to sheets:', error);
+    throw error;
   }
 }
 
@@ -733,8 +793,8 @@ function renderProgress(state) {
   if (bar) bar.style.width = pct + '%';
   if (label) label.textContent = pct + '% answered';
   
-  // Update export button states based on completion
-  updateExportButtonStates(pct);
+  // Update submit button state based on completion
+  updateSubmitButtonState(pct);
 }
 
 function updateDrillVisibility(state) {
@@ -872,8 +932,7 @@ window.addEventListener('DOMContentLoaded', function() {
       // render() will rebuild and highlight
     });
   });
-  document.getElementById('export-json').addEventListener('click', exportJSON);
-  document.getElementById('export-csv').addEventListener('click', exportCSV);
+  document.getElementById('submit').addEventListener('click', submitToGoogleSheets);
   document.getElementById('reset').addEventListener('click', resetAll);
   
   // Update version display

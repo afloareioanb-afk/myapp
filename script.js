@@ -725,13 +725,17 @@ function renderProgress(state) {
       }
     });
   });
-  // SLO sub-questions only count when slo_exists is true
+  // SLO sub-questions always count in total
+  total += 3;
   if (state.slo_exists === true) {
-    total += 3;
+    // When SLO exists, count actual answers to sub-questions
     ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
       const v = state[k];
       if (v===true||v===false||v==='na') answered += 1;
     });
+  } else {
+    // When SLO doesn't exist or is N/A, sub-questions are auto-set to N/A and count as answered
+    answered += 3;
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');

@@ -3,6 +3,8 @@ if (!Element.prototype.matches) {
   Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
 }
 
+
+
 if (!Element.prototype.closest) {
   Element.prototype.closest = function(s) {
     var el = this;
@@ -86,17 +88,24 @@ function createYesNo(container, key) {
   yes.className = 'pill yes';
   yes.textContent = 'Yes';
   yes.addEventListener('click', function() { setAnswer(key, true); });
+  
   const no = document.createElement('span');
   no.className = 'pill no';
   no.textContent = 'No';
   no.addEventListener('click', function() { setAnswer(key, false); });
-  const na = document.createElement('span');
-  na.className = 'pill na';
-  na.textContent = 'N/A';
-  na.addEventListener('click', function() { setAnswer(key, 'na'); });
+  
+  // Always append Yes and No first
   container.appendChild(yes);
   container.appendChild(no);
-  container.appendChild(na);
+  
+  // Only add N/A option for non-SRE support questions (as the last option)
+  if (!key.includes('need_support')) {
+    const na = document.createElement('span');
+    na.className = 'pill na';
+    na.textContent = 'N/A';
+    na.addEventListener('click', function() { setAnswer(key, 'na'); });
+    container.appendChild(na);
+  }
 }
 
 function getState() {
@@ -150,6 +159,30 @@ function setAnswer(key, value) {
     // support 'na' option
     if (value === 'na') params.set(key, 'na'); else params.set(key, value);
   }
+  
+  // Auto-set drill-down questions to N/A when capability is NO
+  if (key.includes('locations_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis'))) {
+    const parts = key.split('_');
+    const loc = parts[1];
+    const cap = parts[2];
+    
+    if (value === false) {
+      // When capability is NO, set Reporting and Stip integration to N/A
+      ['reporting', 'stip'].forEach(function(simple) {
+        const drillKey = 'loc_' + loc + '_' + cap + '_' + simple;
+        params.set(drillKey, 'na');
+      });
+    }
+  }
+  
+  // Auto-set SLO/SLA sub-questions to N/A when slo_exists is NO
+  if (key === 'slo_exists' && value === false) {
+    // When SLO/SLA structure is NO, set sub-questions to N/A
+    ['slo_latency', 'slo_availability', 'slo_error_budget'].forEach(function(sloKey) {
+      params.set(sloKey, 'na');
+    });
+  }
+  
   const newUrl = location.pathname + (params.toString() ? '?' + params.toString() : '');
   if (typeof history.replaceState === 'function') {
     history.replaceState(null, '', newUrl);
@@ -207,7 +240,45 @@ function flash(message) {
   }, 1600);
 }
 
+function updateExportButtonStates(pct) {
+  const exportJsonBtn = document.getElementById('export-json');
+  const exportCsvBtn = document.getElementById('export-csv');
+  
+  if (pct === 100) {
+    // Enable export buttons when 100% complete
+    if (exportJsonBtn) {
+      exportJsonBtn.disabled = false;
+      exportJsonBtn.classList.remove('disabled');
+      exportJsonBtn.title = 'Export questionnaire data as JSON';
+    }
+    if (exportCsvBtn) {
+      exportCsvBtn.disabled = false;
+      exportCsvBtn.classList.remove('disabled');
+      exportCsvBtn.title = 'Export questionnaire data as CSV';
+    }
+  } else {
+    // Disable export buttons when not 100% complete
+    if (exportJsonBtn) {
+      exportJsonBtn.disabled = true;
+      exportJsonBtn.classList.add('disabled');
+      exportJsonBtn.title = 'Complete all questions to enable export (' + pct + '% answered)';
+    }
+    if (exportCsvBtn) {
+      exportCsvBtn.disabled = true;
+      exportCsvBtn.classList.add('disabled');
+      exportCsvBtn.title = 'Complete all questions to enable export (' + pct + '% answered)';
+    }
+  }
+}
+
 function exportJSON() {
+  // Check if questionnaire is 100% complete
+  const progressLabel = document.getElementById('progress-label');
+  if (progressLabel && !progressLabel.textContent.includes('100%')) {
+    alert('Please complete all questions before exporting. Current progress: ' + progressLabel.textContent);
+    return;
+  }
+  
   const state = collectAnswers();
   const jsonString = JSON.stringify(state, null, 2);
   
@@ -236,6 +307,13 @@ function exportJSON() {
 }
 
 function exportCSV() {
+  // Check if questionnaire is 100% complete
+  const progressLabel = document.getElementById('progress-label');
+  if (progressLabel && !progressLabel.textContent.includes('100%')) {
+    alert('Please complete all questions before exporting. Current progress: ' + progressLabel.textContent);
+    return;
+  }
+  
   const state = collectAnswers();
   const csv = convertToCSV(state);
   
@@ -394,9 +472,18 @@ function hydrateSelections(state) {
     const pills = container.querySelectorAll('.pill');
     pills.forEach(function(p){ p.classList.remove('selected'); });
     const val = state[key];
-    if (val === true && pills[0]) pills[0].classList.add('selected');
-    if (val === false && pills[1]) pills[1].classList.add('selected');
-    if (val === 'na' && pills[2]) pills[2].classList.add('selected');
+    
+    // Handle different pill arrangements based on question type
+    if (key.includes('need_support')) {
+      // Need SRE support questions only have Yes/No pills (index 0 and 1)
+      if (val === true && pills[0]) pills[0].classList.add('selected');
+      if (val === false && pills[1]) pills[1].classList.add('selected');
+    } else {
+      // Regular questions have Yes/No/N/A pills (index 0, 1, and 2)
+      if (val === true && pills[0]) pills[0].classList.add('selected');
+      if (val === false && pills[1]) pills[1].classList.add('selected');
+      if (val === 'na' && pills[2]) pills[2].classList.add('selected');
+    }
   });
 
   // hydrate provider chips selection state
@@ -571,36 +658,55 @@ function prettyProv(k){ return k === 'newrelic' ? 'New Relic' : 'Splunk'; }
 function renderProgress(state) {
   // Count yes/no across keys and generated location flags
   let total = YESNO_KEYS.length;
-  let answered = YESNO_KEYS.map(function(k){ return state[k]; }).filter(function(v){ return v===true||v===false; }).length;
+  let answered = YESNO_KEYS.map(function(k){ 
+    const v = state[k];
+    // For "Need SRE support" questions, only count Yes/No (no N/A)
+    if (k.includes('need_support')) {
+      return v === true || v === false;
+    }
+    return v === true || v === false || v === 'na';
+  }).filter(function(answered){ return answered; }).length;
+  
   const locs = state.loc_selected ? [state.loc_selected] : [];
   locs.forEach(function(loc){
     CAPABILITIES.forEach(function(cap){
       total += 1; // capability yes/no
       const v = state.locations && state.locations[loc] && state.locations[loc][cap];
-      if (v===true||v===false) answered += 1;
+      if (v===true||v===false||v==='na') answered += 1;
+      // Sub-questions always count in total, but are only answered when capability is true
+      total += 2;
       if (v === true) {
+        // When capability is YES, count the actual answers to sub-questions
         ['reporting','stip'].forEach(function(simple){
-          total += 1;
           const key = 'loc_' + loc + '_' + cap + '_' + simple;
           const sv = state[key];
-          if (sv===true||sv===false) answered += 1;
+          if (sv===true||sv===false||sv==='na') answered += 1;
         });
+      } else {
+        // When capability is NO or N/A, sub-questions are auto-set to N/A and count as answered
+        answered += 2;
       }
     });
   });
-  // SLO sub-questions counted only if slo_exists is true
+  // SLO sub-questions always count in total, but are only answered when slo_exists is true
+  total += 3;
   if (state.slo_exists === true) {
-    total += 3;
     ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
       const v = state[k];
-      if (v===true||v===false) answered += 1;
+      if (v===true||v===false||v==='na') answered += 1;
     });
+  } else {
+    // When SLO/SLA is NO or N/A, sub-questions are auto-set to N/A and count as answered
+    answered += 3;
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');
   const label = document.getElementById('progress-label');
   if (bar) bar.style.width = pct + '%';
   if (label) label.textContent = pct + '% answered';
+  
+  // Update export button states based on completion
+  updateExportButtonStates(pct);
 }
 
 function updateDrillVisibility(state) {

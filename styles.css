@@ -91,6 +91,114 @@ body:before {
   animation: spin 40s linear infinite; 
 }
 
+.gear-xs { 
+  width: 80px; 
+  top: 15%; 
+  left: 15%; 
+  -webkit-animation: spin-rev 30s linear infinite;
+  animation: spin-rev 30s linear infinite; 
+}
+
+.gear-micro { 
+  width: 50px; 
+  bottom: 25%; 
+  left: 25%; 
+  -webkit-animation: spin 25s linear infinite;
+  animation: spin 25s linear infinite; 
+}
+
+.gear-nano { 
+  width: 35px; 
+  top: 60%; 
+  left: 60%; 
+  -webkit-animation: spin-rev 20s linear infinite;
+  animation: spin-rev 20s linear infinite; 
+}
+
+/* SRE floating text */
+.sre-text {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  color: rgba(82,255,224,0.08);
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  -webkit-transform: rotate(-15deg);
+  transform: rotate(-15deg);
+}
+
+.sre-text.top-left {
+  top: 15%;
+  left: 8%;
+  -webkit-animation: float 8s ease-in-out infinite;
+  animation: float 8s ease-in-out infinite;
+}
+
+.sre-text.top-right {
+  top: 20%;
+  right: 12%;
+  -webkit-animation: float 6s ease-in-out infinite reverse;
+  animation: float 6s ease-in-out infinite reverse;
+}
+
+.sre-text.bottom-left {
+  bottom: 20%;
+  left: 10%;
+  -webkit-animation: float 7s ease-in-out infinite;
+  animation: float 7s ease-in-out infinite;
+}
+
+.sre-text.bottom-right {
+  bottom: 15%;
+  right: 8%;
+  -webkit-animation: float 9s ease-in-out infinite reverse;
+  animation: float 9s ease-in-out infinite reverse;
+}
+
+/* Brain drawing */
+.brain {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  color: rgba(87,162,255,0.12);
+  width: 120px;
+  height: 100px;
+  top: 45%;
+  left: 5%;
+  -webkit-animation: pulse 4s ease-in-out infinite;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.brain svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Floating animation */
+@-webkit-keyframes float {
+  0%, 100% { -webkit-transform: rotate(-15deg) translateY(0px); }
+  50% { -webkit-transform: rotate(-15deg) translateY(-10px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: rotate(-15deg) translateY(0px); }
+  50% { transform: rotate(-15deg) translateY(-10px); }
+}
+
+/* Pulse animation for brain */
+@-webkit-keyframes pulse {
+  0%, 100% { opacity: 0.12; -webkit-transform: scale(1); }
+  50% { opacity: 0.2; -webkit-transform: scale(1.05); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.05); }
+}
+
 @-webkit-keyframes spin { 
   from { -webkit-transform: rotate(0deg); } 
   to { -webkit-transform: rotate(360deg); } 
@@ -498,13 +606,23 @@ body:before {
   background: rgba(255,255,255,0.02);
 }
 
-.cap-header {
-  font-weight: 600;
-  color: var(--accent-2);
+.question.cap-header {
+  font-weight: 700;
+  color: #ff4444;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: 18px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(255,68,68,0.3);
+}
+
+.question.cap-header label {
+  font-weight: 700;
+  color: #ff4444;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(255,68,68,0.3);
 }
 
 .provider-grid {
@@ -560,7 +678,8 @@ body:before {
   border-color: rgba(255,255,255,0.3);
 }
 
-.chip.selected {
+.chip.selected,
+.pill.selected {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
@@ -693,6 +812,19 @@ body:before {
   border-color: rgba(82,255,224,0.5);
 }
 
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.02) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: var(--muted) !important;
+}
+
+.btn.disabled:hover {
+  background: rgba(255,255,255,0.02) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
 /* Responsive adjustments for Safari */
 @media (max-width: 768px) {
   .grid2 > div {
@@ -739,3 +871,5 @@ body:before {
     -webkit-appearance: none;
   }
 }
+
+

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <title>SRE Readiness Questionnaire</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Safari-specific CSS fixes -->
+    <style>
+      /* Safari-specific input styling */
+      @supports (-webkit-appearance: none) {
+        input[type="text"] {
+          -webkit-appearance: none;
+          border-radius: 4px;
+        }
+        button {
+          -webkit-appearance: none;
+        }
+      }
+      
+      /* Safari flexbox fixes */
+      @supports (-webkit-box-align: center) {
+        .title-row, .progress-wrap, .stats-wrap, .actions {
+          display: -webkit-box;
+          -webkit-box-align: center;
+          -webkit-box-pack: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sprockets" aria-hidden="true">
+      <!-- Large gears -->
+      <svg class="gear gear-lg" viewBox="0 0 100 100">
+        <path d="M50 18l6 4 8-3 4 6 8 1 1 8 7 5-3 7 3 8-7 5-1 8-8 1-4 6-8-3-6 4-6-4-8 3-4-6-8-1-1-8-7-5 3-8-3-7 7-5 1-8 8-1 4-6 8 3 6-4zm0 14a18 18 0 1 0 0 36 18 18 0 0 0 0-36z" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <svg class="gear gear-md" viewBox="0 0 100 100">
+        <path d="M50 20l5 3 7-3 3 5 7 1 1 7 6 4-2 6 2 7-6 4-1 7-7 1-3 5-7-3-5 3-5-3-7 3-3-5-7-1-1-7-6-4 2-7-2-6 6-4 1-7 7-1 3-5 7 3 5-3zm0 13a15 15 0 1 0 0 30 15 15 0 0 0 0-30z" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <svg class="gear gear-sm" viewBox="0 0 100 100">
+        <path d="M50 24l4 3 5-2 3 4 5 1 1 5 4 3-2 5 2 5-4 3-1 5-5 1-3 4-5-2-4 3-4-3-5 2-3-4-5-1-1-5-4-3 2-5-2-5 4-3 1-5 5-1 3-4 5 2 4-3zm0 10a11 11 0 1 0 0 22 11 11 0 0 0 0-22z" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      
+      <!-- Additional smaller gears -->
+      <svg class="gear gear-xs" viewBox="0 0 100 100">
+        <path d="M50 25l4 2 6-2 2 4 6 1 1 6 5 3-2 5 2 5-5 3-1 6-6 1-2 4-6-2-4 2-4-2-6 2-2-4-6-1-1-6-5-3 2-5-2-5 5-3 1-6 6-1 2-4 6 2 4-2zm0 12a12 12 0 1 0 0 24 12 12 0 0 0 0-24z" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <svg class="gear gear-micro" viewBox="0 0 100 100">
+        <path d="M50 28l3 2 4-2 2 3 4 1 1 4 3 2-1 3 1 3-3 2-1 4-4 1-2 3-4-2-3 2-3-2-4 2-2-3-4-1-1-4-3-2 1-3-1-3 3-2 1-4 4-1 2-3 4 2 3-2zm0 8a8 8 0 1 0 0 16 8 8 0 0 0 0-16z" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <svg class="gear gear-nano" viewBox="0 0 100 100">
+        <path d="M50 30l2 1 3-1 1 2 3 1 1 3 2 1-1 2 1 2-2 1-1 3-3 1-1 2-3-1-2 1-2-1-3 1-1-2-3-1-1-3-2-1 1-2-1-2 2-1 1-3 3-1 1-2 3 1 2-1zm0 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      
+      <!-- SRE floating text -->
+      <div class="sre-text top-left">SRE</div>
+      <div class="sre-text top-right">RELIABILITY</div>
+      <div class="sre-text bottom-left">ENGINEERING</div>
+      <div class="sre-text bottom-right">SITE</div>
+      
+      <!-- Brain drawing -->
+      <div class="brain">
+        <svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="1">
+          <!-- Brain outline -->
+          <path d="M20 40 Q30 20 50 20 Q70 20 80 40 Q80 60 70 60 Q50 60 30 60 Q20 60 20 40" stroke="currentColor" fill="none"/>
+          <!-- Brain folds -->
+          <path d="M25 35 Q35 25 50 25 Q65 25 75 35" stroke="currentColor" fill="none"/>
+          <path d="M25 45 Q35 35 50 35 Q65 35 75 45" stroke="currentColor" fill="none"/>
+          <path d="M25 55 Q35 45 50 45 Q65 45 75 55" stroke="currentColor" fill="none"/>
+          <!-- Neural connections -->
+          <circle cx="30" cy="30" r="1" fill="currentColor"/>
+          <circle cx="40" cy="25" r="1" fill="currentColor"/>
+          <circle cx="50" cy="22" r="1" fill="currentColor"/>
+          <circle cx="60" cy="25" r="1" fill="currentColor"/>
+          <circle cx="70" cy="30" r="1" fill="currentColor"/>
+          <circle cx="35" cy="40" r="1" fill="currentColor"/>
+          <circle cx="45" cy="35" r="1" fill="currentColor"/>
+          <circle cx="55" cy="35" r="1" fill="currentColor"/>
+          <circle cx="65" cy="40" r="1" fill="currentColor"/>
+          <circle cx="30" cy="50" r="1" fill="currentColor"/>
+          <circle cx="40" cy="45" r="1" fill="currentColor"/>
+          <circle cx="50" cy="45" r="1" fill="currentColor"/>
+          <circle cx="60" cy="45" r="1" fill="currentColor"/>
+          <circle cx="70" cy="50" r="1" fill="currentColor"/>
+        </svg>
+      </div>
+    </div>
+    <header class="app-header">
+      <div class="title-row">
+        <h1>SRE Readiness Questionnaire</h1>
+        <div class="badges">
+          <span class="badge">SLO</span>
+          <span class="badge">MTTR</span>
+          <span class="badge">DR</span>
+        </div>
+      </div>
+      <p class="subtitle">Shareable link, autosave, and summary export</p>
+      <div class="progress-wrap">
+        <div class="progress-bar"><span id="progress-bar-fill"></span></div>
+        <span id="progress-label">0% answered</span>
+      </div>
+      <div class="stats-wrap">
+        <div class="stats-group">
+          <span id="onboard-frontend">Frontend onboard: —</span>
+          <span id="onboard-frontend-mon" class="sub">Monitor: —</span>
+          <span id="onboard-frontend-al" class="sub">Alert: —</span>
+        </div>
+        <div class="stats-group">
+          <span id="onboard-backend">Backend onboard: —</span>
+          <span id="onboard-backend-mon" class="sub">Monitor: —</span>
+          <span id="onboard-backend-al" class="sub">Alert: —</span>
+        </div>
+        <div class="stats-group">
+          <span id="onboard-apis">APIs onboard: —</span>
+          <span id="onboard-apis-mon" class="sub">Monitor: —</span>
+          <span id="onboard-apis-al" class="sub">Alert: —</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <form id="questionnaire" novalidate>
+        <section class="card" id="meta">
+          <h2><span class="icon">📄</span> Application Metadata</h2>
+          <div class="grid2">
+            <div class="field">
+              <label for="app_name">Application name <span class="required">*</span></label>
+              <input id="app_name" name="app_name" type="text" placeholder="e.g., Payments Portal" autocomplete="off" required />
+            </div>
+            <div class="field">
+              <label for="po_name">PO Name <span class="required">*</span></label>
+              <input id="po_name" name="po_name" type="text" placeholder="Product Owner" autocomplete="off" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>Application type</label>
+            <div class="segmented" id="app_type_segmented">
+              <button type="button" data-type="java">Java</button>
+              <button type="button" data-type="nodejs">Node.js</button>
+              <button type="button" data-type="other">Other</button>
+            </div>
+            <div class="field" id="app_type_other_wrap" style="display:none;margin-top:8px;">
+              <input id="app_type_other" name="app_type_other" type="text" placeholder="Specify other type" autocomplete="off" />
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="locations">
+          <h2><span class="icon">🌐</span> Location of application</h2>
+          <div class="field">
+            <label>Select one location</label>
+            <div class="segmented" id="location_segmented">
+              <button type="button" data-loc="gcp">GCP</button>
+              <button type="button" data-loc="onprem">On-Prem</button>
+              <button type="button" data-loc="hybrid">Hybrid</button>
+            </div>
+          </div>
+          <div id="locations-root"></div>
+        </section>
+
+        <section class="card" id="slo-sla">
+          <h2><span class="icon">🎯</span> SLO/SLA - Service levels</h2>
+          <div class="question"><label>Is there a documented SLO/SLA structure for your application?</label><div class="options" data-key="slo_exists"></div></div>
+          <div class="subgrid" data-drill-for="slo_exists">
+            <div class="question"><label>Latency SLO (e.g., 95% < 300ms)</label><div class="options" data-key="slo_latency"></div></div>
+            <div class="question"><label>Availability SLO (e.g., 99.9%)</label><div class="options" data-key="slo_availability"></div></div>
+            <div class="question"><label>Error budget defined</label><div class="options" data-key="slo_error_budget"></div></div>
+            <div class="question"><label>Need SRE support for SLO/SLA?</label><div class="options" data-key="slo_need_support"></div></div>
+          </div>
+        </section>
+
+        <section class="card" id="dr">
+          <h2><span class="icon">🔄</span> Disaster Recovery (DR) & Resilience</h2>
+          <div class="question"><label>Do you have a documented DR plan?</label><div class="options" data-key="dr_plan"></div></div>
+          <div class="question"><label>Are RTO/RPO defined and documented?</label><div class="options" data-key="dr_rto_rpo"></div></div>
+          <div class="question"><label>Has the DR plan been tested in the last 12 months?</label><div class="options" data-key="dr_tested"></div></div>
+          <div class="question"><label>Need SRE support for DR?</label><div class="options" data-key="dr_need_support"></div></div>
+        </section>
+
+        <section class="card" id="best-practices">
+          <h2><span class="icon">📚</span> Best Practices</h2>
+          <div class="question"><label>Do you have runbooks/support guides?</label><div class="options" data-key="bp_runbooks"></div></div>
+          <div class="question"><label>Are critical failure scenarios documented?</label><div class="options" data-key="bp_spof"></div></div>
+          <div class="question"><label>Is alert noise documented and addressed?</label><div class="options" data-key="bp_noise"></div></div>
+          <div class="question"><label>Do you track MTTR (Mean Time To Recovery)?</label><div class="options" data-key="bp_mttr"></div></div>
+        </section>
+      </form>
+
+      <div class="actions">
+        <button type="button" class="btn primary" id="export-json">Export JSON</button>
+        <button type="button" class="btn primary" id="export-csv">Export CSV</button>
+        <button type="button" class="btn secondary" id="reset">Reset All</button>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

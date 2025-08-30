@@ -9,7 +9,7 @@ A shareable web application that functions as a comprehensive SRE (Site Reliabil
 - **Drill-down Logic**: Conditional questions appear based on previous answers
 - **Progress Tracking**: Visual progress bar and completion percentage
 - **Onboarding Metrics**: Calculated percentages for Frontend, Backend, and APIs with Monitor/Alert splits
-- **Export Options**: JSON and CSV export functionality (no submit to external systems)
+- **Export Options**: JSON and CSV export functionality with email client integration
 - **Responsive Design**: Works on desktop and mobile devices
 - **Safari Compatible**: Optimized for macOS Safari browser
 
@@ -20,7 +20,7 @@ A shareable web application that functions as a comprehensive SRE (Site Reliabil
 - **Conditional Display**: Drill-down sections only show when relevant
 - **Real-time Calculations**: Onboarding percentages update automatically
 - **Cross-browser Compatibility**: Polyfills and fallbacks for older browsers
-- **No External Submissions**: All data stays local, no external API calls
+- **CSV Generation & Email**: Generate CSV files and open email client with pre-filled content
 
 ## Browser Support
 
@@ -180,6 +180,18 @@ Flattened questionnaire data in CSV format, suitable for:
 
 **Note**: This application does not submit data to external systems. All data remains local and can only be exported in the formats listed above.
 
+### Email Integration
+
+The CSV export feature includes email client integration:
+
+1. **CSV Generation**: Creates a downloadable CSV file with all assessment responses
+2. **Email Client**: Automatically opens your default email client
+3. **Pre-filled Content**: Subject, recipient, and body are automatically filled
+4. **Manual Attachment**: You manually attach the downloaded CSV file
+5. **Send**: Complete the email and send to `afloareioanb@gmail.com`
+
+This approach ensures data security while providing a streamlined workflow for sharing assessment results.
+
 ## Troubleshooting
 
 ### Common Safari Issues
@@ -254,5 +266,6 @@ For issues, questions, or contributions:
 ---
 
 **Note**: This application is designed for internal SRE assessments and should be deployed in appropriate security contexts based on your organization's requirements.
+
 
 

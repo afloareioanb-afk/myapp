@@ -268,7 +268,7 @@ function updateSubmitButtonState(pct) {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.classList.remove('disabled');
-      submitBtn.title = 'Generate CSV and send to email';
+      submitBtn.title = 'Generate CSV and open email client';
     }
   } else {
     // Disable submit button when not 100% complete
@@ -301,15 +301,28 @@ Best regards,
 SRE Readiness Assessment Tool
   `.trim();
   
-  // Create mailto link with CSV as attachment
+  // Create mailto link (note: mailto doesn't support attachments)
   const mailtoLink = `mailto:afloareioanb@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   
   // Open default email client
   window.open(mailtoLink);
   
-  // Also show instructions for manual email
+  // Show clear instructions for manual attachment
   setTimeout(() => {
-    alert(`Email client opened with CSV attachment.\n\nIf your email client doesn't support attachments, please:\n1. Save the downloaded CSV file\n2. Manually attach it to an email to: afloareioanb@gmail.com\n3. Use subject: "${subject}"`);
+    const instructions = `
+📧 Email client opened!
+
+📎 To attach the CSV file:
+1. The CSV file has been downloaded to your computer
+2. In your email client, click "Attach" or "Paperclip" icon
+3. Browse to your Downloads folder
+4. Select the file: sre-readiness-${appName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv
+5. Send the email to: afloareioanb@gmail.com
+
+💡 Tip: The email subject and body are already filled in for you!
+    `.trim();
+    
+    alert(instructions);
   }, 1000);
 }
 

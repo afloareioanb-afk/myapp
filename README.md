@@ -9,7 +9,7 @@ A shareable web application that functions as a comprehensive SRE (Site Reliabil
 - **Drill-down Logic**: Conditional questions appear based on previous answers
 - **Progress Tracking**: Visual progress bar and completion percentage
 - **Onboarding Metrics**: Calculated percentages for Frontend, Backend, and APIs with Monitor/Alert splits
-- **Export Options**: JSON and CSV export functionality
+- **Export Options**: JSON and CSV export functionality (no submit to external systems)
 - **Responsive Design**: Works on desktop and mobile devices
 - **Safari Compatible**: Optimized for macOS Safari browser
 
@@ -20,6 +20,7 @@ A shareable web application that functions as a comprehensive SRE (Site Reliabil
 - **Conditional Display**: Drill-down sections only show when relevant
 - **Real-time Calculations**: Onboarding percentages update automatically
 - **Cross-browser Compatibility**: Polyfills and fallbacks for older browsers
+- **No External Submissions**: All data stays local, no external API calls
 
 ## Browser Support
 
@@ -100,22 +101,22 @@ The application is a static web app that can be deployed to any web hosting serv
 For each selected location, assess:
 
 #### Frontend Component
-- Monitoring (New Relic, Splunk)
-- Alerting (New Relic, Splunk)
-- Reporting
-- Stip Integration
+- Monitoring (New Relic, Splunk) - *Optional, does not affect completion*
+- Alerting (New Relic, Splunk) - *Optional, does not affect completion*
+- Reporting - **Required for completion**
+- Stip Integration - **Required for completion**
 
 #### Backend Services
-- Monitoring (New Relic, Splunk)
-- Alerting (New Relic, Splunk)
-- Reporting
-- Stip Integration
+- Monitoring (New Relic, Splunk) - *Optional, does not affect completion*
+- Alerting (New Relic, Splunk) - *Optional, does not affect completion*
+- Reporting - **Required for completion**
+- Stip Integration - **Required for completion**
 
 #### Exposed APIs
-- Monitoring (New Relic, Splunk)
-- Alerting (New Relic, Splunk)
-- Reporting
-- Stip Integration
+- Monitoring (New Relic, Splunk) - *Optional, does not affect completion*
+- Alerting (New Relic, Splunk) - *Optional, does not affect completion*
+- Reporting - **Required for completion**
+- Stip Integration - **Required for completion**
 
 ### SLO/SLA Assessment
 - SLO/SLA structure existence
@@ -146,6 +147,10 @@ For each selected location, assess:
 - **Monitoring**: Response times, HTTP Response Codes, Error Rate, Throughput, Availability, Anomalies, DB connections, Restarts/Uptime
 - **Alerting**: Critical errors, Error Rate
 
+## Progress Tracking
+
+**Important**: Progress calculation only counts Yes/No/N/A questions towards completion. The individual monitoring and alerting items (New Relic/Splunk options) are optional and do not affect the overall completion percentage.
+
 ## Onboarding Metrics
 
 The application calculates "onboarding" percentages for each capability:
@@ -172,6 +177,8 @@ Flattened questionnaire data in CSV format, suitable for:
 - Spreadsheet analysis
 - Reporting tools
 - Data import to other systems
+
+**Note**: This application does not submit data to external systems. All data remains local and can only be exported in the formats listed above.
 
 ## Troubleshooting
 

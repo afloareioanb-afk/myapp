@@ -51,9 +51,7 @@ if (typeof URLSearchParams === 'undefined') {
   };
 }
 
-// Version info
-const APP_VERSION = "1.2.0";
-const BUILD_DATE = "2024-12-19";
+
 
 // New schema keys
 const META_KEYS = ["app_name", "po_name", "app_type", "app_type_other"];
@@ -205,6 +203,116 @@ function setAnswer(key, value) {
   render();
 }
 
+function generateAndSendCSV() {
+  // Check if required fields are filled
+  const appName = document.getElementById('app_name').value.trim();
+  const poName = document.getElementById('po_name').value.trim();
+  
+  if (!appName || !poName) {
+    alert('Please fill in both Application name and PO Name (marked with *) before generating CSV.');
+    return;
+  }
+  
+  // Check if questionnaire is 100% complete
+  const progressLabel = document.getElementById('progress-label');
+  if (progressLabel && !progressLabel.textContent.includes('100%')) {
+    alert('Please complete all questions before generating CSV. Current progress: ' + progressLabel.textContent);
+    return;
+  }
+  
+  const state = collectAnswers();
+  
+  // Show loading state
+  const submitBtn = document.getElementById('submit');
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = 'Generating...';
+  submitBtn.disabled = true;
+  
+  try {
+    // Generate CSV content
+    const csvContent = convertToCSV(state);
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sre-readiness-${appName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    // Send email with CSV attachment
+    sendEmailWithCSV(csvContent, appName, state);
+    
+    // Show success message
+    flash('CSV generated and email sent successfully!');
+    
+  } catch (error) {
+    console.error('CSV generation failed:', error);
+    alert('Failed to generate CSV. Please try again or contact support.');
+  } finally {
+    // Restore button state
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  }
+}
+
+function updateSubmitButtonState(pct) {
+  const submitBtn = document.getElementById('submit');
+  
+  if (pct === 100) {
+    // Enable submit button when 100% complete
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('disabled');
+      submitBtn.title = 'Generate CSV and send to email';
+    }
+  } else {
+    // Disable submit button when not 100% complete
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('disabled');
+      submitBtn.title = 'Complete all questions to enable CSV generation (' + pct + '% answered)';
+    }
+  }
+}
+
+function sendEmailWithCSV(csvContent, appName, state) {
+  // Create email content
+  const subject = `SRE Readiness Assessment - ${appName}`;
+  const body = `
+Dear SRE Team,
+
+Please find attached the SRE Readiness Assessment for ${appName}.
+
+Assessment Summary:
+- Application: ${appName}
+- PO Name: ${state.po_name}
+- Application Type: ${state.app_type}${state.app_type === 'other' ? ' (' + state.app_type_other + ')' : ''}
+- Location: ${state.loc_selected || 'Not specified'}
+- Assessment Date: ${new Date().toLocaleDateString()}
+
+The CSV file contains detailed responses to all assessment questions.
+
+Best regards,
+SRE Readiness Assessment Tool
+  `.trim();
+  
+  // Create mailto link with CSV as attachment
+  const mailtoLink = `mailto:afloareioanb@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  // Open default email client
+  window.open(mailtoLink);
+  
+  // Also show instructions for manual email
+  setTimeout(() => {
+    alert(`Email client opened with CSV attachment.\n\nIf your email client doesn't support attachments, please:\n1. Save the downloaded CSV file\n2. Manually attach it to an email to: afloareioanb@gmail.com\n3. Use subject: "${subject}"`);
+  }, 1000);
+}
+
 function resetAll() {
   // Clear URL parameters
   if (typeof history.replaceState === 'function') {
@@ -281,184 +389,13 @@ function flash(message) {
   }, 1600);
 }
 
-function updateSubmitButtonState(pct) {
-  const submitBtn = document.getElementById('submit');
-  
-  if (pct === 100) {
-    // Enable submit button when 100% complete
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.classList.remove('disabled');
-      submitBtn.title = 'Submit questionnaire data to Google Sheets';
-    }
-  } else {
-    // Disable submit button when not 100% complete
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.classList.add('disabled');
-      submitBtn.title = 'Complete all questions to enable submit (' + pct + '% answered)';
-    }
-  }
-}
 
-function submitToGoogleSheets() {
-  // Check if required fields are filled
-  const appName = document.getElementById('app_name').value.trim();
-  const poName = document.getElementById('po_name').value.trim();
-  
-  if (!appName || !poName) {
-    alert('Please fill in both Application name and PO Name (marked with *) before submitting.');
-    return;
-  }
-  
-  // Check if questionnaire is 100% complete
-  const progressLabel = document.getElementById('progress-label');
-  if (progressLabel && !progressLabel.textContent.includes('100%')) {
-    alert('Please complete all questions before submitting. Current progress: ' + progressLabel.textContent);
-    return;
-  }
-  
-  const state = collectAnswers();
-  
-  // Show loading state
-  const submitBtn = document.getElementById('submit');
-  const originalText = submitBtn.textContent;
-  submitBtn.textContent = 'Submitting...';
-  submitBtn.disabled = true;
-  
-  // Prepare data for Google Sheets
-  const sheetData = prepareSheetData(state);
-  
-  // Try to submit to Google Sheets
-  submitDataToSheets(sheetData)
-    .then(() => {
-      alert('Successfully submitted to Google Sheets!');
-      // Reset form after successful submission
-      resetAll();
-    })
-    .catch((error) => {
-      console.error('Submission failed:', error);
-      alert('Failed to submit to Google Sheets. Please try again or contact support.');
-    })
-    .finally(() => {
-      // Restore button state
-      submitBtn.textContent = originalText;
-      submitBtn.disabled = false;
-    });
-}
 
-function prepareSheetData(state) {
-  // Create a flat array of data for Google Sheets
-  const data = [];
-  
-  // Add timestamp
-  data.push(new Date().toISOString());
-  
-  // Add metadata
-  data.push(state.app_name || '');
-  data.push(state.po_name || '');
-  data.push(state.app_type || '');
-  data.push(state.app_type_other || '');
-  
-  // Add SLO/SLA data
-  data.push(state.slo_exists ? 'Yes' : 'No');
-  data.push(state.slo_latency ? 'Yes' : 'No');
-  data.push(state.slo_availability ? 'Yes' : 'No');
-  data.push(state.slo_error_budget ? 'Yes' : 'No');
-  
-  // Add DR data
-  data.push(state.dr_plan ? 'Yes' : 'No');
-  data.push(state.dr_rto_rpo ? 'Yes' : 'No');
-  data.push(state.dr_tested ? 'Yes' : 'No');
-  
-  // Add Best Practices data
-  data.push(state.bp_runbooks ? 'Yes' : 'No');
-  data.push(state.bp_spof ? 'Yes' : 'No');
-  data.push(state.bp_noise ? 'Yes' : 'No');
-  data.push(state.bp_mttr ? 'Yes' : 'No');
-  
-  // Add location data
-  if (state.locations && state.loc_selected) {
-    const loc = state.locations[state.loc_selected];
-    if (loc) {
-      data.push(state.loc_selected);
-      data.push(loc.frontend ? 'Yes' : 'No');
-      data.push(loc.backend ? 'Yes' : 'No');
-      data.push(loc.apis ? 'Yes' : 'No');
-      
-      // Add monitoring and alerting details
-      ['frontend', 'backend', 'apis'].forEach(cap => {
-        if (loc[cap]) {
-          // Monitoring
-          const monKey = 'loc_' + state.loc_selected + '_' + cap + '_monitoring';
-          if (state[monKey]) {
-            Object.keys(state[monKey]).forEach(prov => {
-              const items = state[monKey][prov] || [];
-              data.push(items.join('; '));
-            });
-          }
-          
-          // Alerting
-          const alertKey = 'loc_' + state.loc_selected + '_' + cap + '_alerting';
-          if (state[alertKey]) {
-            Object.keys(state[alertKey]).forEach(prov => {
-              const items = state[alertKey][prov] || [];
-              data.push(items.join('; '));
-            });
-          }
-          
-          // Reporting and Stip
-          const repKey = 'loc_' + state.loc_selected + '_' + cap + '_reporting';
-          const stipKey = 'loc_' + state.loc_selected + '_' + cap + '_stip';
-          data.push(state[repKey] ? 'Yes' : 'No');
-          data.push(state[stipKey] ? 'Yes' : 'No');
-        } else {
-          // Add empty values for capabilities that don't exist
-          data.push('', '', '', '', '', '');
-        }
-      });
-    }
-  }
-  
-  return data;
-}
 
-async function submitDataToSheets(data) {
-  // Google Sheets API endpoint (you'll need to set up a Google Apps Script)
-  const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1J-6ulciLC7ByHh-2o3Fa8TjHeVwLsDTmy2EULIwTnfA/edit?usp=sharing';
-  
-  try {
-    // For now, we'll use a simple approach - open the sheet and show instructions
-    // In a production environment, you'd need to set up Google Apps Script or use Google Sheets API
-    
-    // Show the data that would be submitted
-    console.log('Data to submit:', data);
-    
-    // Create a downloadable CSV file as a fallback
-    const csvContent = data.join(',');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sre-readiness-' + new Date().toISOString().split('T')[0] + '.csv';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 100);
-    
-    // Open the Google Sheet for manual review
-    window.open(GOOGLE_SHEETS_URL, '_blank');
-    
-    // For now, we'll simulate a successful submission
-    // In the future, you can implement actual Google Sheets API calls here
-    return Promise.resolve();
-    
-  } catch (error) {
-    console.error('Error submitting to sheets:', error);
-    throw error;
-  }
-}
+
+
+
+
 
 function convertToCSV(data) {
   const rows = [];
@@ -822,33 +759,16 @@ function renderProgress(state) {
         answered += 2;
       }
       
-      // Monitoring and alerting items (only count when capability is true)
-      if (v === true) {
-        // Count monitoring items
-        (PROVIDERS.monitoring||[]).forEach(function(prov) {
-          const items = MON_ITEMS[prov] || [];
-          total += items.length;
-          const key = 'loc_' + state.loc_selected + '_' + cap + '_monitoring_' + prov;
-          const selected = state[key] || [];
-          answered += selected.length;
-        });
-        
-        // Count alerting items
-        (PROVIDERS.alerting||[]).forEach(function(prov) {
-          const items = ALERT_ITEMS[prov] || [];
-          total += items.length;
-          const key = 'loc_' + state.loc_selected + '_' + cap + '_alerting_' + prov;
-          const selected = state[key] || [];
-          answered += selected.length;
-        });
-      }
+      // Monitoring and alerting items are NOT counted towards completion
+      // Only Reporting and Stip integration questions count (handled above)
+      // The individual monitoring/alerting items are optional and don't affect progress
     });
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');
   const label = document.getElementById('progress-label');
   if (bar) bar.style.width = pct + '%';
-  if (label) label.textContent = pct + '% answered';
+    if (label) label.textContent = pct + '% answered';
   
   // Update submit button state based on completion
   updateSubmitButtonState(pct);
@@ -955,13 +875,7 @@ function applyStat(el, text, pctText) {
   else el.classList.add('stat-orange');
 }
 
-function updateVersionDisplay() {
-  const versionBadge = document.querySelector('.version-badge');
-  const buildDate = document.querySelector('.build-date');
-  
-  if (versionBadge) versionBadge.textContent = 'v' + APP_VERSION;
-  if (buildDate) buildDate.textContent = BUILD_DATE;
-}
+
 
 // Initialize when DOM is ready
 window.addEventListener('DOMContentLoaded', function() {
@@ -989,11 +903,11 @@ window.addEventListener('DOMContentLoaded', function() {
       // render() will rebuild and highlight
     });
   });
-  document.getElementById('submit').addEventListener('click', submitToGoogleSheets);
+
+  document.getElementById('submit').addEventListener('click', generateAndSendCSV);
   document.getElementById('reset').addEventListener('click', resetAll);
   
-  // Update version display
-  updateVersionDisplay();
+
   
   render();
 });

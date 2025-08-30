@@ -173,7 +173,7 @@ function setAnswer(key, value) {
   }
   
   // Auto-set drill-down questions to N/A when capability is NO
-  if (key.includes('locations_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis'))) {
+  if (key.includes('loc_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis'))) {
     const parts = key.split('_');
     const loc = parts[1];
     const cap = parts[2];
@@ -206,11 +206,40 @@ function setAnswer(key, value) {
 }
 
 function resetAll() {
+  // Clear URL parameters
   if (typeof history.replaceState === 'function') {
     history.replaceState(null, '', location.pathname);
   } else {
     location.hash = location.pathname;
   }
+  
+  // Clear input fields directly
+  const appNameInput = document.getElementById('app_name');
+  const poNameInput = document.getElementById('po_name');
+  const appTypeOtherInput = document.getElementById('app_type_other');
+  
+  if (appNameInput) appNameInput.value = '';
+  if (poNameInput) poNameInput.value = '';
+  if (appTypeOtherInput) appTypeOtherInput.value = '';
+  
+  // Reset app type selection
+  const typeSeg = document.getElementById('app_type_segmented');
+  if (typeSeg) {
+    typeSeg.querySelectorAll('button').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    const appTypeOtherWrap = document.getElementById('app_type_other_wrap');
+    if (appTypeOtherWrap) appTypeOtherWrap.style.display = 'none';
+  }
+  
+  // Reset location selection
+  const locSeg = document.getElementById('location_segmented');
+  if (locSeg) {
+    locSeg.querySelectorAll('button').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+  }
+  
   render();
 }
 
@@ -739,57 +768,81 @@ function toggleChip(key, item) {
 function prettyProv(k){ return k === 'newrelic' ? 'New Relic' : 'Splunk'; }
 
 function renderProgress(state) {
-  // Count required fields first
-  let total = 2; // Application name and PO Name
+  // Count all questions that are visible/required
+  let total = 0;
   let answered = 0;
   
-  // Check if required fields are filled
+  // Required metadata fields (always count)
+  total += 4; // Application name, PO Name, Application Type, and Location
   if (state.app_name && state.app_name.trim()) answered += 1;
   if (state.po_name && state.po_name.trim()) answered += 1;
+  if (state.app_type) answered += 1;
+  if (state.loc_selected) answered += 1;
   
-  // Only count YESNO_KEYS if they have been answered
+  // All YESNO_KEYS questions (always count)
+  total += YESNO_KEYS.length;
   YESNO_KEYS.forEach(function(k){ 
     const v = state[k];
     if (v === true || v === false || v === 'na') {
-      total += 1;
       answered += 1;
     }
   });
   
-  const locs = state.loc_selected ? [state.loc_selected] : [];
-  locs.forEach(function(loc){
+  // SLO sub-questions (always count, but only answered when slo_exists is true)
+  total += 3; // slo_latency, slo_availability, slo_error_budget
+  if (state.slo_exists === true) {
+    // When SLO exists, count actual answers to sub-questions
+    ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
+      const v = state[k];
+      if (v===true||v===false||v==='na') answered += 1;
+    });
+  } else if (state.slo_exists === false || state.slo_exists === 'na') {
+    // When SLO doesn't exist or is N/A, sub-questions are auto-set to N/A and count as answered
+    answered += 3;
+  }
+  
+  // Location questions (always count if location is selected)
+  if (state.loc_selected) {
     CAPABILITIES.forEach(function(cap){
       total += 1; // capability yes/no
-      const v = state.locations && state.locations[loc] && state.locations[loc][cap];
+      const v = state.locations && state.locations[state.loc_selected] && state.locations[state.loc_selected][cap];
       if (v===true||v===false||v==='na') answered += 1;
-      // Sub-questions always count in total, but are only answered when capability is true
-      total += 2;
+      
+      // Sub-questions always count in total
+      total += 2; // reporting and stip
       if (v === true) {
         // When capability is YES, count the actual answers to sub-questions
         ['reporting','stip'].forEach(function(simple){
-          const key = 'loc_' + loc + '_' + cap + '_' + simple;
+          const key = 'loc_' + state.loc_selected + '_' + cap + '_' + simple;
           const sv = state[key];
           if (sv===true||sv===false||sv==='na') answered += 1;
         });
-      } else {
+      } else if (v === false || v === 'na') {
         // When capability is NO or N/A, sub-questions are auto-set to N/A and count as answered
         answered += 2;
       }
+      
+      // Monitoring and alerting items (only count when capability is true)
+      if (v === true) {
+        // Count monitoring items
+        (PROVIDERS.monitoring||[]).forEach(function(prov) {
+          const items = MON_ITEMS[prov] || [];
+          total += items.length;
+          const key = 'loc_' + state.loc_selected + '_' + cap + '_monitoring_' + prov;
+          const selected = state[key] || [];
+          answered += selected.length;
+        });
+        
+        // Count alerting items
+        (PROVIDERS.alerting||[]).forEach(function(prov) {
+          const items = ALERT_ITEMS[prov] || [];
+          total += items.length;
+          const key = 'loc_' + state.loc_selected + '_' + cap + '_alerting_' + prov;
+          const selected = state[key] || [];
+          answered += selected.length;
+        });
+      }
     });
-  });
-  // SLO sub-questions only count when slo_exists is answered
-  if (state.slo_exists === true || state.slo_exists === false || state.slo_exists === 'na') {
-    total += 3;
-    if (state.slo_exists === true) {
-      // When SLO exists, count actual answers to sub-questions
-      ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k){
-        const v = state[k];
-        if (v===true||v===false||v==='na') answered += 1;
-      });
-    } else {
-      // When SLO doesn't exist or is N/A, sub-questions are auto-set to N/A and count as answered
-      answered += 3;
-    }
   }
   const pct = Math.round((answered / total) * 100);
   const bar = document.getElementById('progress-bar-fill');

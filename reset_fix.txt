@@ -1,0 +1,9 @@
+  // Clear Application Metadata input fields
+  const appNameInput = document.getElementById('app_name');
+  const poNameInput = document.getElementById('po_name');
+  const appTypeOtherInput = document.getElementById('app_type_other');
+  
+  if (appNameInput) appNameInput.value = '';
+  if (poNameInput) poNameInput.value = '';
+  if (appTypeOtherInput) appTypeOtherInput.value = '';
+

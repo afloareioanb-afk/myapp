@@ -198,15 +198,16 @@ function getState() {
       state.locations[loc][cap] = parsed;
       // expose capability value at top-level for UI highlight
       state[k] = parsed;
-      // drilldowns multi-select as CSV: loc_loc_cat_provider=item1|item2
-      CATEGORIES.forEach(function(cat) {
-        if (cat === 'reporting' || cat === 'stip') return; // simple yes/no
-        (PROVIDERS[cat]||[]).forEach(function(prov) {
-          const dk = 'loc_' + loc + '_' + cap + '_' + cat + '_' + prov;
-          const raw = params.get(dk);
-          state[dk] = raw ? raw.split('|') : [];
-        });
-      });
+             // drilldowns multi-select as CSV: loc_loc_cat_provider=item1|item2
+       CATEGORIES.forEach(function(cat) {
+         if (cat === 'reporting' || cat === 'stip') return; // simple yes/no
+         const locationProviders = getProvidersForLocation(loc);
+         (locationProviders[cat]||[]).forEach(function(prov) {
+           const dk = 'loc_' + loc + '_' + cap + '_' + cat + '_' + prov;
+           const raw = params.get(dk);
+           state[dk] = raw ? raw.split('|') : [];
+         });
+       });
       // simple yes/no for reporting & stip
       ['reporting','stip'].forEach(function(simple){
         const sk = 'loc_' + loc + '_' + cap + '_' + simple;

@@ -247,7 +247,9 @@ function setAnswer(key, value) {
   }
   
   // Auto-set drill-down questions to N/A when capability is NO
-  if (key.includes('loc_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis'))) {
+  // Only trigger for main capability keys (not sub-questions like reporting/stip)
+  if (key.includes('loc_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis')) && 
+      !key.includes('_reporting') && !key.includes('_stip')) {
     const parts = key.split('_');
     const loc = parts[1];
     const cap = parts[2];

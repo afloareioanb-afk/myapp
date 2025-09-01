@@ -76,7 +76,7 @@ const PROVIDERS = {
 
 // Updated monitoring items - removed "SYNT tests" and "BROWSER (dashboard)" from backend and APIs
 const MON_ITEMS = {
-  newrelic: ["APM (dashboard)", "INFRA (dashboard)", "Other"],
+  newrelic: ["APM (dashboard)", "INFRA (dashboard)", "SYNT", "Other"],
   splunk: [
     "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime","Other"
   ],

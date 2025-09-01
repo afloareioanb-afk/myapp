@@ -980,6 +980,9 @@ function renderOnboardStats(state) {
       // Exclude N/A by definition – chips are only selected or not
       selected += items.length; total += all.length;
       selMon += items.length; totMon += all.length;
+      
+      // Debug logging for monitoring calculation
+      console.log(`Monitoring ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);
     });
     // Alerting
     (locationProviders.alerting||[]).forEach(function(prov){
@@ -998,6 +1001,9 @@ function renderOnboardStats(state) {
     out[cap] = total ? Math.round((selected/total)*100) + '%' : '—';
     out[cap + 'Mon'] = totMon ? Math.round((selMon/totMon)*100) + '%' : '—';
     out[cap + 'Al'] = totAl ? Math.round((selAl/totAl)*100) + '%' : '—';
+    
+    // Debug logging for final calculation
+    console.log(`${cap} calculation: selected=${selected}, total=${total}, selMon=${selMon}, totMon=${totMon}, selAl=${selAl}, totAl=${totAl}`);
   });
   updateOnboardUI(out);
 }

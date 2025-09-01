@@ -977,9 +977,11 @@ function renderOnboardStats(state) {
       const key = 'loc_' + loc + '_' + cap + '_monitoring_' + prov;
       const items = state[key] || [];
       const all = MON_ITEMS[prov] || [];
-      // Exclude N/A by definition – chips are only selected or not
-      selected += items.length; total += all.length;
-      selMon += items.length; totMon += all.length;
+          // Count all available items and selected items
+    selected += items.length; 
+    total += all.length;
+    selMon += items.length; 
+    totMon += all.length;
       
       // Debug logging for monitoring calculation
       console.log(`Monitoring ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);
@@ -991,12 +993,18 @@ function renderOnboardStats(state) {
       const all = ALERT_ITEMS[prov] || [];
       selected += items.length; total += all.length;
       selAl += items.length; totAl += all.length;
+      
+      // Debug logging for alerting calculation
+      console.log(`Alerting ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);
     });
     // Reporting/Stip as binary yes/no, exclude N/A from denominator
     ['reporting','stip'].forEach(function(simple){
       const v = state['loc_' + loc + '_' + cap + '_' + simple];
       if (v === true) { selected += 1; total += 1; }
       else if (v === false) { total += 1; }
+      
+      // Debug logging for reporting/stip calculation
+      console.log(`${simple} for ${cap}: value=${v}, selected=${v === true ? 1 : 0}, total=${v === true || v === false ? 1 : 0}`);
     });
     out[cap] = total ? Math.round((selected/total)*100) + '%' : '—';
     out[cap + 'Mon'] = totMon ? Math.round((selMon/totMon)*100) + '%' : '—';

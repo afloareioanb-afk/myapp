@@ -76,19 +76,19 @@ const PROVIDERS = {
 
 // Updated monitoring items - removed "SYNT tests" and "BROWSER (dashboard)" from backend and APIs
 const MON_ITEMS = {
-  newrelic: ["APM (dashboard)", "INFRA (dashboard)"],
+  newrelic: ["APM (dashboard)", "INFRA (dashboard)", "Other"],
   splunk: [
-    "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime"
+    "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime","Other"
   ],
   "cloud-monitoring": [
-    "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime"
+    "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime","Other"
   ],
 };
 
 const ALERT_ITEMS = {
-  newrelic: ["Availability", "Error rate"],
-  splunk: ["Critical errors", "Error Rate"],
-  "cloud-monitoring": ["Critical errors", "Error Rate"],
+  newrelic: ["Availability", "Error rate", "Other"],
+  splunk: ["Critical errors", "Error Rate", "Other"],
+  "cloud-monitoring": ["Critical errors", "Error Rate", "Other"],
 };
 
 // Get providers based on location
@@ -770,14 +770,53 @@ function buildLocations() {
       const rep = document.createElement('div');
       rep.className = 'question';
       rep.innerHTML = '<label>Reporting</label><div class="options" data-key="loc_' + loc + '_' + cap + '_reporting"></div>';
+      
       const stip = document.createElement('div');
       stip.className = 'question';
       stip.innerHTML = '<label>Stip integration</label><div class="options" data-key="loc_' + loc + '_' + cap + '_stip"></div>';
+      
+      // Stip integration drill-down options
+      const stipDrill = document.createElement('div');
+      stipDrill.className = 'drill';
+      stipDrill.style.marginLeft = '8px';
+      stipDrill.style.display = 'none';
+      stipDrill.setAttribute('data-drill-for', 'loc_' + loc + '_' + cap + '_stip');
+      
+      const stipOptions = document.createElement('div');
+      stipOptions.className = 'question';
+      stipOptions.innerHTML = '<label>Stip Integration Options</label>';
+      const stipGrid = document.createElement('div');
+      stipGrid.className = 'provider-grid';
+      
+      // Add New Relic and Splunk options for Stip integration
+      ['newrelic', 'splunk'].forEach(function(prov){
+        const provWrap = document.createElement('div');
+        provWrap.className = 'provider';
+        provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
+        const chips = document.createElement('div');
+        chips.className = 'chipset';
+        
+        // Add a simple "Enabled" option for each provider
+        const chip = document.createElement('span');
+        chip.className = 'pill';
+        chip.textContent = 'Enabled';
+        chip.dataset.key = 'loc_' + loc + '_' + cap + '_stip_' + prov;
+        chip.dataset.item = 'Enabled';
+        chip.addEventListener('click', function(){ toggleChip('loc_' + loc + '_' + cap + '_stip_' + prov, 'Enabled'); });
+        chips.appendChild(chip);
+        
+        provWrap.appendChild(chips);
+        stipGrid.appendChild(provWrap);
+      });
+      
+      stipOptions.appendChild(stipGrid);
+      stipDrill.appendChild(stipOptions);
 
       drill.appendChild(mon);
       drill.appendChild(al);
       drill.appendChild(rep);
       drill.appendChild(stip);
+      drill.appendChild(stipDrill);
 
       locCard.appendChild(capWrap);
       locCard.appendChild(drill);
@@ -891,7 +930,16 @@ function updateDrillVisibility(state) {
       const parts = key.split('_');
       const loc = parts[1];
       const cap = parts[2];
-      enabled = state.locations && state.locations[loc] && state.locations[loc][cap] === true;
+      
+      // Check if this is a Stip integration drill-down
+      if (parts.length >= 4 && parts[3] === 'stip') {
+        // Show Stip options when Stip integration is Yes
+        const stipKey = 'loc_' + loc + '_' + cap + '_stip';
+        enabled = state[stipKey] === true;
+      } else {
+        // Regular capability drill-down
+        enabled = state.locations && state.locations[loc] && state.locations[loc][cap] === true;
+      }
     } else {
       enabled = state[key] === true;
     }

@@ -80,12 +80,36 @@ const MON_ITEMS = {
   splunk: [
     "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime"
   ],
+  "cloud-monitoring": [
+    "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime"
+  ],
 };
 
 const ALERT_ITEMS = {
   newrelic: ["Availability", "Error rate"],
   splunk: ["Critical errors", "Error Rate"],
+  "cloud-monitoring": ["Critical errors", "Error Rate"],
 };
+
+// Get providers based on location
+function getProvidersForLocation(location) {
+  if (location === 'gcp') {
+    return {
+      monitoring: ["newrelic", "cloud-monitoring"],
+      alerting: ["newrelic", "cloud-monitoring"],
+    };
+  }
+  if (location === 'hybrid') {
+    return {
+      monitoring: ["newrelic", "splunk", "cloud-monitoring"],
+      alerting: ["newrelic", "splunk", "cloud-monitoring"],
+    };
+  }
+  return {
+    monitoring: ["newrelic", "splunk"],
+    alerting: ["newrelic", "splunk"],
+  };
+}
 
 // Secure storage helpers for sensitive fields (kept out of URL)
 function secureStorageAvailable() {
@@ -566,18 +590,19 @@ function collectAnswers() {
   data.locations = {};
   LOCATIONS.forEach(function(loc){
     data.locations[loc] = {};
+    const locationProviders = getProvidersForLocation(loc);
     CAPABILITIES.forEach(function(cap){
       const k = 'loc_' + loc + '_' + cap;
       const v = params.get(k);
       data.locations[loc][cap] = v === '1' ? true : v === '0' ? false : v === 'na' ? 'na' : null;
       data.locations[loc][cap + '_monitoring'] = {};
-      (PROVIDERS.monitoring||[]).forEach(function(prov){
+      (locationProviders.monitoring||[]).forEach(function(prov){
         const dk = 'loc_' + loc + '_' + cap + '_monitoring_' + prov;
         const raw = params.get(dk);
         data.locations[loc][cap + '_monitoring'][prov] = raw ? raw.split('|') : [];
       });
       data.locations[loc][cap + '_alerting'] = {};
-      (PROVIDERS.alerting||[]).forEach(function(prov){
+      (locationProviders.alerting||[]).forEach(function(prov){
         const ak = 'loc_' + loc + '_' + cap + '_alerting_' + prov;
         const raw = params.get(ak);
         data.locations[loc][cap + '_alerting'][prov] = raw ? raw.split('|') : [];
@@ -668,6 +693,9 @@ function buildLocations() {
     locCard.className = 'card';
     const title = loc.charAt(0).toUpperCase() + loc.slice(1);
     locCard.innerHTML = '<h3 style="margin-top:0;">' + title + '</h3>';
+    
+    // Get location-specific providers
+    const locationProviders = getProvidersForLocation(loc);
 
     CAPABILITIES.forEach(function(cap){
       const capWrap = document.createElement('div');
@@ -688,7 +716,7 @@ function buildLocations() {
       mon.innerHTML = '<label>Monitoring</label>';
       const monGrid = document.createElement('div');
       monGrid.className = 'provider-grid';
-      PROVIDERS.monitoring.forEach(function(prov){
+      locationProviders.monitoring.forEach(function(prov){
         const provWrap = document.createElement('div');
         provWrap.className = 'provider';
         provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
@@ -715,7 +743,7 @@ function buildLocations() {
       al.innerHTML = '<label>Alerting</label>';
       const alGrid = document.createElement('div');
       alGrid.className = 'provider-grid';
-      PROVIDERS.alerting.forEach(function(prov){
+      locationProviders.alerting.forEach(function(prov){
         const provWrap = document.createElement('div');
         provWrap.className = 'provider';
         provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
@@ -777,7 +805,11 @@ function toggleChip(key, item) {
   render();
 }
 
-function prettyProv(k){ return k === 'newrelic' ? 'New Relic' : 'Splunk'; }
+function prettyProv(k){ 
+  if (k === 'newrelic') return 'New Relic';
+  if (k === 'cloud-monitoring') return 'Cloud Monitoring-Logging';
+  return 'Splunk';
+}
 
 function renderProgress(state) {
   // Count all questions that are visible/required
@@ -877,6 +909,7 @@ function renderOnboardStats(state) {
     updateOnboardUI(out);
     return;
   }
+  const locationProviders = getProvidersForLocation(loc);
   CAPABILITIES.forEach(function(cap){
     if (state.locations && state.locations[loc] && state.locations[loc][cap] !== true) {
       out[cap] = '—';
@@ -889,19 +922,19 @@ function renderOnboardStats(state) {
     // per-category counters
     let selMon = 0, totMon = 0, selAl = 0, totAl = 0;
     // Monitoring
-    (PROVIDERS.monitoring||[]).forEach(function(prov){
+    (locationProviders.monitoring||[]).forEach(function(prov){
       const key = 'loc_' + loc + '_' + cap + '_monitoring_' + prov;
       const items = state[key] || [];
-      const all = (prov === 'newrelic') ? MON_ITEMS.newrelic : MON_ITEMS.splunk;
+      const all = MON_ITEMS[prov] || [];
       // Exclude N/A by definition – chips are only selected or not
       selected += items.length; total += all.length;
       selMon += items.length; totMon += all.length;
     });
     // Alerting
-    (PROVIDERS.alerting||[]).forEach(function(prov){
+    (locationProviders.alerting||[]).forEach(function(prov){
       const key = 'loc_' + loc + '_' + cap + '_alerting_' + prov;
       const items = state[key] || [];
-      const all = (prov === 'newrelic') ? ALERT_ITEMS.newrelic : ALERT_ITEMS.splunk;
+      const all = ALERT_ITEMS[prov] || [];
       selected += items.length; total += all.length;
       selAl += items.length; totAl += all.length;
     });

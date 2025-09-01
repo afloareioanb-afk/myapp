@@ -67,7 +67,7 @@ const YESNO_KEYS = [
 
 
 const LOCATIONS = ["gcp", "onprem", "hybrid"];
-const CAPABILITIES = ["frontend", "backend", "apis"];
+const CAPABILITIES = ["frontend", "backend", "apis", "mobile"];
 const CATEGORIES = ["monitoring", "alerting", "reporting", "stip"];
 const PROVIDERS = {
   monitoring: ["newrelic", "splunk"],
@@ -702,7 +702,7 @@ function buildLocations() {
     CAPABILITIES.forEach(function(cap){
       const capWrap = document.createElement('div');
       capWrap.className = 'question cap-header';
-      const capLabel = cap === 'apis' ? 'Exposes APIs' : (cap === 'frontend' ? 'Frontend' : 'Backend');
+      const capLabel = cap === 'apis' ? 'Exposes APIs' : (cap === 'frontend' ? 'Frontend' : (cap === 'mobile' ? 'Mobile' : 'Backend'));
       capWrap.innerHTML = '<label>' + capLabel + '</label><div class="options" data-key="loc_' + loc + '_' + cap + '"></div>';
 
       // drilldowns

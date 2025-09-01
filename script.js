@@ -87,6 +87,36 @@ const ALERT_ITEMS = {
   splunk: ["Critical errors", "Error Rate"],
 };
 
+// Secure storage helpers for sensitive fields (kept out of URL)
+function secureStorageAvailable() {
+  try {
+    var testKey = '__secure_test__';
+    window.localStorage.setItem(testKey, '1');
+    window.localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function secureSet(key, value) {
+  if (!secureStorageAvailable()) return;
+  try { window.localStorage.setItem('secure_' + key, String(value || '')); } catch (e) {}
+}
+
+function secureGet(key) {
+  if (!secureStorageAvailable()) return '';
+  try { return window.localStorage.getItem('secure_' + key) || ''; } catch (e) { return ''; }
+}
+
+function secureClear() {
+  if (!secureStorageAvailable()) return;
+  try {
+    window.localStorage.removeItem('secure_app_name');
+    window.localStorage.removeItem('secure_po_name');
+  } catch (e) {}
+}
+
 function createYesNo(container, key) {
   const yes = document.createElement('span');
   yes.className = 'pill yes';
@@ -113,8 +143,11 @@ function createYesNo(container, key) {
 function getState() {
   const params = new URLSearchParams(location.search);
   const state = {};
-  // Meta
-  META_KEYS.forEach(function(k){ state[k] = params.get(k) || ''; });
+  // Meta (keep sensitive values out of URL)
+  state.app_name = secureGet('app_name');
+  state.po_name = secureGet('po_name');
+  state.app_type = params.get('app_type') || '';
+  state.app_type_other = params.get('app_type_other') || '';
   // Selected location
   state.loc_selected = params.get('loc_selected') || '';
   // Yes/No
@@ -163,6 +196,25 @@ function getState() {
 
 function setAnswer(key, value) {
   const params = new URLSearchParams(location.search);
+  // Handle sensitive fields by storing only in localStorage and stripping from URL
+  if (key === 'app_name' || key === 'po_name') {
+    secureSet(key, value);
+    try {
+      if (typeof params.delete === 'function') {
+        params.delete(key);
+      } else if (params.params) {
+        delete params.params[key];
+      }
+    } catch (e) {}
+    const newUrlSecure = location.pathname + (params.toString() ? '?' + params.toString() : '');
+    if (typeof history.replaceState === 'function') {
+      history.replaceState(null, '', newUrlSecure);
+    } else {
+      location.hash = newUrlSecure;
+    }
+    render();
+    return;
+  }
   if (typeof value === 'boolean') {
     params.set(key, value ? '1' : '0');
   } else if (typeof value === 'string') {
@@ -333,6 +385,8 @@ function resetAll() {
   } else {
     location.hash = location.pathname;
   }
+  // Clear secure storage values
+  secureClear();
   
   // Clear input fields directly
   const appNameInput = document.getElementById('app_name');
@@ -498,8 +552,11 @@ function convertToCSV(data) {
 function collectAnswers() {
   const params = new URLSearchParams(location.search);
   const data = {};
-  // meta
-  META_KEYS.forEach(function(k){ data[k] = params.get(k) || ''; });
+  // meta (sensitive values from secure storage)
+  data.app_name = secureGet('app_name') || '';
+  data.po_name = secureGet('po_name') || '';
+  data.app_type = params.get('app_type') || '';
+  data.app_type_other = params.get('app_type_other') || '';
   // yes/no
   YESNO_KEYS.forEach(function(key) {
     const v = params.get(key);
@@ -569,6 +626,11 @@ function render() {
   buildYesNoOptions();
   // hydrate selections and visuals
   hydrateSelections(state);
+  // hydrate sensitive inputs from secure storage
+  var appNameInput = document.getElementById('app_name');
+  var poNameInput = document.getElementById('po_name');
+  if (appNameInput && appNameInput.value !== state.app_name) appNameInput.value = state.app_name || '';
+  if (poNameInput && poNameInput.value !== state.po_name) poNameInput.value = state.po_name || '';
   renderProgress(state);
   updateDrillVisibility(state);
   // highlight selected location button

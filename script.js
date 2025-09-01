@@ -950,10 +950,11 @@ function updateDrillVisibility(state) {
 function renderOnboardStats(state) {
   const loc = state.loc_selected;
   const out = {
-    frontend: '—', backend: '—', apis: '—',
+    frontend: '—', backend: '—', apis: '—', mobile: '—',
     frontendMon: '—', frontendAl: '—',
     backendMon: '—', backendAl: '—',
-    apisMon: '—', apisAl: '—'
+    apisMon: '—', apisAl: '—',
+    mobileMon: '—', mobileAl: '—'
   };
   if (!loc) {
     updateOnboardUI(out);
@@ -1011,6 +1012,9 @@ function updateOnboardUI(out) {
   const ap = document.getElementById('onboard-apis');
   const apM = document.getElementById('onboard-apis-mon');
   const apA = document.getElementById('onboard-apis-al');
+  const mo = document.getElementById('onboard-mobile');
+  const moM = document.getElementById('onboard-mobile-mon');
+  const moA = document.getElementById('onboard-mobile-al');
   applyStat(fe, 'Frontend onboard: ' + out.frontend, out.frontend);
   applyStat(feM, 'Monitor: ' + out.frontendMon, out.frontendMon);
   applyStat(feA, 'Alert: ' + out.frontendAl, out.frontendAl);
@@ -1020,6 +1024,9 @@ function updateOnboardUI(out) {
   applyStat(ap, 'APIs onboard: ' + out.apis, out.apis);
   applyStat(apM, 'Monitor: ' + out.apisMon, out.apisMon);
   applyStat(apA, 'Alert: ' + out.apisAl, out.apisAl);
+  applyStat(mo, 'Mobile onboard: ' + out.mobile, out.mobile);
+  applyStat(moM, 'Monitor: ' + out.mobileMon, out.mobileMon);
+  applyStat(moA, 'Alert: ' + out.mobileAl, out.mobileAl);
 }
 
 function applyStat(el, text, pctText) {

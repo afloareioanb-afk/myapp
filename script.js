@@ -978,14 +978,11 @@ function renderOnboardStats(state) {
       const items = state[key] || [];
       const all = MON_ITEMS[prov] || [];
       
-      // Only count this provider if user has selected at least one item from it
-      // This ensures 100% when all items from a provider are selected
-      if (items.length > 0) {
-        selected += items.length; 
-        total += all.length;
-        selMon += items.length; 
-        totMon += all.length;
-      }
+      // Count all available items and selected items
+      selected += items.length; 
+      total += all.length;
+      selMon += items.length; 
+      totMon += all.length;
       
       // Debug logging for monitoring calculation
       console.log(`Monitoring ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);
@@ -996,14 +993,11 @@ function renderOnboardStats(state) {
       const items = state[key] || [];
       const all = ALERT_ITEMS[prov] || [];
       
-      // Only count this provider if user has selected at least one item from it
-      // This ensures 100% when all items from a provider are selected
-      if (items.length > 0) {
-        selected += items.length; 
-        total += all.length;
-        selAl += items.length; 
-        totAl += all.length;
-      }
+      // Count all available items and selected items
+      selected += items.length; 
+      total += all.length;
+      selAl += items.length; 
+      totAl += all.length;
       
       // Debug logging for alerting calculation
       console.log(`Alerting ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);

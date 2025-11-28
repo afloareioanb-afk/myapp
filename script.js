@@ -144,15 +144,28 @@ function secureClear() {
 }
 
 function createYesNo(container, key) {
+  if (!container || !key) {
+    console.warn('createYesNo called with invalid parameters:', container, key);
+    return;
+  }
+  
   const yes = document.createElement('span');
   yes.className = 'pill yes';
   yes.textContent = 'Yes';
-  yes.addEventListener('click', function() { setAnswer(key, true); });
+  yes.addEventListener('click', function(e) { 
+    e.preventDefault();
+    e.stopPropagation();
+    setAnswer(key, true); 
+  });
   
   const no = document.createElement('span');
   no.className = 'pill no';
   no.textContent = 'No';
-  no.addEventListener('click', function() { setAnswer(key, false); });
+  no.addEventListener('click', function(e) { 
+    e.preventDefault();
+    e.stopPropagation();
+    setAnswer(key, false); 
+  });
   
   // Always append Yes and No first
   container.appendChild(yes);
@@ -162,7 +175,11 @@ function createYesNo(container, key) {
   const na = document.createElement('span');
   na.className = 'pill na';
   na.textContent = 'N/A';
-  na.addEventListener('click', function() { setAnswer(key, 'na'); });
+  na.addEventListener('click', function(e) { 
+    e.preventDefault();
+    e.stopPropagation();
+    setAnswer(key, 'na'); 
+  });
   container.appendChild(na);
 }
 
@@ -724,6 +741,10 @@ function render() {
 function buildYesNoOptions() {
   document.querySelectorAll('.options').forEach(function(container){
     const key = container.getAttribute('data-key');
+    if (!key) {
+      console.warn('Options container missing data-key attribute:', container);
+      return;
+    }
     container.innerHTML = '';
     createYesNo(container, key);
   });

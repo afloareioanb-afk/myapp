@@ -193,6 +193,7 @@ function getState() {
   state.contact_email = secureGet('contact_email');
   state.app_type = params.get('app_type') || '';
   state.app_type_other = params.get('app_type_other') || '';
+  state.other_mentions = params.get('other_mentions') || '';
   // Selected location
   state.loc_selected = params.get('loc_selected') || '';
   // Yes/No
@@ -553,12 +554,14 @@ function resetAll() {
   const narIdInput = document.getElementById('nar_id');
   const contactEmailInput = document.getElementById('contact_email');
   const appTypeOtherInput = document.getElementById('app_type_other');
+  const otherMentionsTextarea = document.getElementById('other_mentions');
   
   if (appNameInput) appNameInput.value = '';
   if (roleSelect) roleSelect.value = '';
   if (narIdInput) narIdInput.value = '';
   if (contactEmailInput) contactEmailInput.value = '';
   if (appTypeOtherInput) appTypeOtherInput.value = '';
+  if (otherMentionsTextarea) otherMentionsTextarea.value = '';
   
   // Reset app type selection
   const typeSeg = document.getElementById('app_type_segmented');
@@ -722,6 +725,12 @@ function convertToCSV(data) {
     });
   }
   
+  // Add Other Mentions
+  if (data.other_mentions && data.other_mentions.trim()) {
+    rows.push([]);
+    rows.push(['Other Mentions', data.other_mentions]);
+  }
+  
   return rows.map(function(row) {
     return row.map(function(cell) {
       return escapeCSVCell(cell);
@@ -739,6 +748,7 @@ function collectAnswers() {
   data.contact_email = secureGet('contact_email') || '';
   data.app_type = params.get('app_type') || '';
   data.app_type_other = params.get('app_type_other') || '';
+  data.other_mentions = params.get('other_mentions') || '';
   // yes/no
   YESNO_KEYS.forEach(function(key) {
     const v = params.get(key);
@@ -827,6 +837,8 @@ function render() {
   if (roleSelect && roleSelect.value !== state.role) roleSelect.value = state.role || '';
   if (narIdInput && narIdInput.value !== state.nar_id) narIdInput.value = state.nar_id || '';
   if (contactEmailInput && contactEmailInput.value !== state.contact_email) contactEmailInput.value = state.contact_email || '';
+  var otherMentionsTextarea = document.getElementById('other_mentions');
+  if (otherMentionsTextarea && otherMentionsTextarea.value !== state.other_mentions) otherMentionsTextarea.value = state.other_mentions || '';
   renderProgress(state);
   updateDrillVisibility(state);
   // highlight selected location button
@@ -1128,7 +1140,12 @@ function updateDrillVisibility(state) {
     } else {
       enabled = state[key] === true;
     }
-    el.style.display = enabled ? '' : 'none';
+    // For slo-sub-questions, use flex display; for others, use block or empty string
+    if (el.classList.contains('slo-sub-questions')) {
+      el.style.display = enabled ? 'flex' : 'none';
+    } else {
+      el.style.display = enabled ? '' : 'none';
+    }
   });
 }
 
@@ -1251,6 +1268,7 @@ window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('nar_id').addEventListener('input', function(e){ setAnswer('nar_id', e.target.value); });
   document.getElementById('contact_email').addEventListener('input', function(e){ setAnswer('contact_email', e.target.value); });
   document.getElementById('app_type_other').addEventListener('input', function(e){ setAnswer('app_type_other', e.target.value); });
+  document.getElementById('other_mentions').addEventListener('input', function(e){ setAnswer('other_mentions', e.target.value); });
 
   // initial render builds everything
   // location segmented

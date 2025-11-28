@@ -234,8 +234,8 @@ function getState() {
         const sk = 'loc_' + loc + '_' + cap + '_' + simple;
         const sv = params.get(sk);
         state[sk] = sv === '1' ? true : sv === '0' ? false : sv === 'na' ? 'na' : null;
-        // Handle provider drill-downs for stip, geneos, and lisi
-        if (simple === 'stip' || simple === 'geneos' || simple === 'lisi') {
+        // Handle provider drill-downs for stip only
+        if (simple === 'stip') {
           ['newrelic', 'splunk'].forEach(function(prov){
             const dk = 'loc_' + loc + '_' + cap + '_' + simple + '_' + prov;
             const raw = params.get(dk);
@@ -368,7 +368,99 @@ function generateAndSendCSV() {
   }
 }
 
-function updateSubmitButtonState(pct) {
+function getIncompleteItems(state) {
+  const incomplete = [];
+  
+  // Check metadata fields
+  if (!state.app_name || !state.app_name.trim()) {
+    incomplete.push('Application name');
+  }
+  if (!state.role || !state.role.trim()) {
+    incomplete.push('Role');
+  }
+  if (!state.app_type) {
+    incomplete.push('Application type');
+  }
+  if (!state.loc_selected) {
+    incomplete.push('Location');
+  }
+  
+  // Check YESNO_KEYS questions
+  const questionLabels = {
+    'slo_exists': 'SLO/SLA structure',
+    'slo_pdm': 'PDM documentation',
+    'dr_plan': 'DR plan',
+    'dr_rto_rpo': 'RTO/RPO definition',
+    'dr_tested': 'DR plan testing',
+    'bp_runbooks': 'Runbooks/support guides',
+    'bp_spof': 'Critical failure scenarios',
+    'bp_noise': 'Alert noise documentation',
+    'bp_mttr': 'MTTR tracking',
+    'bp_dependencies': 'Direct dependencies documentation'
+  };
+  
+  YESNO_KEYS.forEach(function(k) {
+    const v = state[k];
+    if (v !== true && v !== false && v !== 'na') {
+      const label = questionLabels[k] || k;
+      incomplete.push(label);
+    }
+  });
+  
+  // Check SLO sub-questions
+  if (state.slo_exists === true) {
+    const sloSubLabels = {
+      'slo_latency': 'Latency SLO',
+      'slo_availability': 'Availability SLO',
+      'slo_error_budget': 'Error budget'
+    };
+    ['slo_latency','slo_availability','slo_error_budget'].forEach(function(k) {
+      const v = state[k];
+      if (v !== true && v !== false && v !== 'na') {
+        incomplete.push(sloSubLabels[k]);
+      }
+    });
+  } else if (state.slo_exists !== false && state.slo_exists !== 'na') {
+    // SLO exists question itself is incomplete
+    incomplete.push('SLO/SLA structure');
+  }
+  
+  // Check location capability questions
+  if (state.loc_selected) {
+    const capLabels = {
+      'frontend': 'Frontend',
+      'backend': 'Backend',
+      'apis': 'APIs',
+      'mobile': 'Mobile'
+    };
+    const integrationLabels = {
+      'reporting': 'Reporting',
+      'stip': 'Stip Integration',
+      'geneos': 'Geneos Integration',
+      'lisi': 'Lisi Integration'
+    };
+    
+    CAPABILITIES.forEach(function(cap) {
+      const v = state.locations && state.locations[state.loc_selected] && state.locations[state.loc_selected][cap];
+      if (v !== true && v !== false && v !== 'na') {
+        incomplete.push(capLabels[cap] + ' component');
+      } else if (v === true) {
+        // Check integration questions when capability is YES
+        ['reporting','stip','geneos','lisi'].forEach(function(simple) {
+          const key = 'loc_' + state.loc_selected + '_' + cap + '_' + simple;
+          const sv = state[key];
+          if (sv !== true && sv !== false && sv !== 'na') {
+            incomplete.push(capLabels[cap] + ' - ' + integrationLabels[simple]);
+          }
+        });
+      }
+    });
+  }
+  
+  return incomplete;
+}
+
+function updateSubmitButtonState(pct, state) {
   const submitBtn = document.getElementById('submit');
   
   if (pct === 100) {
@@ -383,7 +475,16 @@ function updateSubmitButtonState(pct) {
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.classList.add('disabled');
-      submitBtn.title = 'Complete all questions to enable CSV generation (' + pct + '% answered)';
+      
+      // Build detailed tooltip with incomplete items
+      let tooltip = 'Complete all questions to enable CSV generation (' + pct + '% answered)';
+      if (state) {
+        const incomplete = getIncompleteItems(state);
+        if (incomplete.length > 0) {
+          tooltip += '\n\nMissing:\n• ' + incomplete.join('\n• ');
+        }
+      }
+      submitBtn.title = tooltip;
     }
   }
 }
@@ -668,8 +769,8 @@ function collectAnswers() {
         const sk = 'loc_' + loc + '_' + cap + '_' + simple;
         const sv = params.get(sk);
         data.locations[loc][cap + '_' + simple] = sv === '1' ? true : sv === '0' ? false : sv === 'na' ? 'na' : null;
-        // Handle provider drill-downs for stip, geneos, and lisi
-        if (simple === 'stip' || simple === 'geneos' || simple === 'lisi') {
+        // Handle provider drill-downs for stip only
+        if (simple === 'stip') {
           data.locations[loc][cap + '_' + simple + '_providers'] = {};
           ['newrelic', 'splunk'].forEach(function(prov){
             const dk = 'loc_' + loc + '_' + cap + '_' + simple + '_' + prov;
@@ -888,85 +989,11 @@ function buildLocations() {
       const geneos = document.createElement('div');
       geneos.className = 'question';
       geneos.innerHTML = '<label>Geneos Integration</label><div class="options" data-key="loc_' + loc + '_' + cap + '_geneos"></div>';
-      
-      // Geneos integration drill-down options
-      const geneosDrill = document.createElement('div');
-      geneosDrill.className = 'drill';
-      geneosDrill.style.marginLeft = '8px';
-      geneosDrill.style.display = 'none';
-      geneosDrill.setAttribute('data-drill-for', 'loc_' + loc + '_' + cap + '_geneos');
-      
-      const geneosOptions = document.createElement('div');
-      geneosOptions.className = 'question';
-      geneosOptions.innerHTML = '<label>Geneos Integration Options</label>';
-      const geneosGrid = document.createElement('div');
-      geneosGrid.className = 'provider-grid';
-      
-      // Add New Relic and Splunk options for Geneos integration
-      ['newrelic', 'splunk'].forEach(function(prov){
-        const provWrap = document.createElement('div');
-        provWrap.className = 'provider';
-        provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
-        const chips = document.createElement('div');
-        chips.className = 'chipset';
-        
-        // Add a simple "Enabled" option for each provider
-        const chip = document.createElement('span');
-        chip.className = 'pill';
-        chip.textContent = 'Enabled';
-        chip.dataset.key = 'loc_' + loc + '_' + cap + '_geneos_' + prov;
-        chip.dataset.item = 'Enabled';
-        chip.addEventListener('click', function(){ toggleChip('loc_' + loc + '_' + cap + '_geneos_' + prov, 'Enabled'); });
-        chips.appendChild(chip);
-        
-        provWrap.appendChild(chips);
-        geneosGrid.appendChild(provWrap);
-      });
-      
-      geneosOptions.appendChild(geneosGrid);
-      geneosDrill.appendChild(geneosOptions);
 
       // Lisi integration (yes/no)
       const lisi = document.createElement('div');
       lisi.className = 'question';
       lisi.innerHTML = '<label>Lisi Integration</label><div class="options" data-key="loc_' + loc + '_' + cap + '_lisi"></div>';
-      
-      // Lisi integration drill-down options
-      const lisiDrill = document.createElement('div');
-      lisiDrill.className = 'drill';
-      lisiDrill.style.marginLeft = '8px';
-      lisiDrill.style.display = 'none';
-      lisiDrill.setAttribute('data-drill-for', 'loc_' + loc + '_' + cap + '_lisi');
-      
-      const lisiOptions = document.createElement('div');
-      lisiOptions.className = 'question';
-      lisiOptions.innerHTML = '<label>Lisi Integration Options</label>';
-      const lisiGrid = document.createElement('div');
-      lisiGrid.className = 'provider-grid';
-      
-      // Add New Relic and Splunk options for Lisi integration
-      ['newrelic', 'splunk'].forEach(function(prov){
-        const provWrap = document.createElement('div');
-        provWrap.className = 'provider';
-        provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
-        const chips = document.createElement('div');
-        chips.className = 'chipset';
-        
-        // Add a simple "Enabled" option for each provider
-        const chip = document.createElement('span');
-        chip.className = 'pill';
-        chip.textContent = 'Enabled';
-        chip.dataset.key = 'loc_' + loc + '_' + cap + '_lisi_' + prov;
-        chip.dataset.item = 'Enabled';
-        chip.addEventListener('click', function(){ toggleChip('loc_' + loc + '_' + cap + '_lisi_' + prov, 'Enabled'); });
-        chips.appendChild(chip);
-        
-        provWrap.appendChild(chips);
-        lisiGrid.appendChild(provWrap);
-      });
-      
-      lisiOptions.appendChild(lisiGrid);
-      lisiDrill.appendChild(lisiOptions);
 
       drill.appendChild(mon);
       drill.appendChild(al);
@@ -974,9 +1001,7 @@ function buildLocations() {
       drill.appendChild(stip);
       drill.appendChild(stipDrill);
       drill.appendChild(geneos);
-      drill.appendChild(geneosDrill);
       drill.appendChild(lisi);
-      drill.appendChild(lisiDrill);
 
       locCard.appendChild(capWrap);
       locCard.appendChild(drill);
@@ -1079,7 +1104,7 @@ function renderProgress(state) {
     if (label) label.textContent = pct + '% answered';
   
   // Update submit button state based on completion
-  updateSubmitButtonState(pct);
+  updateSubmitButtonState(pct, state);
 }
 
 function updateDrillVisibility(state) {
@@ -1091,10 +1116,10 @@ function updateDrillVisibility(state) {
       const loc = parts[1];
       const cap = parts[2];
       
-      // Check if this is a Stip/Geneos/Lisi integration drill-down
-      if (parts.length >= 4 && (parts[3] === 'stip' || parts[3] === 'geneos' || parts[3] === 'lisi')) {
+      // Check if this is a Stip integration drill-down
+      if (parts.length >= 4 && parts[3] === 'stip') {
         // Show integration options when integration is Yes
-        const integrationKey = 'loc_' + loc + '_' + cap + '_' + parts[3];
+        const integrationKey = 'loc_' + loc + '_' + cap + '_stip';
         enabled = state[integrationKey] === true;
       } else {
         // Regular capability drill-down

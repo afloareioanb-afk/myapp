@@ -491,6 +491,15 @@ function flash(message) {
 
 
 
+// Secure CSV cell escaping to prevent CSV injection
+function escapeCSVCell(cell) {
+  if (cell == null || cell === undefined) return '""';
+  const str = String(cell);
+  // Escape quotes by doubling them, and wrap in quotes
+  // This prevents CSV injection and handles special characters
+  return '"' + str.replace(/"/g, '""') + '"';
+}
+
 function convertToCSV(data) {
   const rows = [];
   
@@ -571,7 +580,7 @@ function convertToCSV(data) {
   
   return rows.map(function(row) {
     return row.map(function(cell) {
-      return '"' + cell + '"';
+      return escapeCSVCell(cell);
     }).join(',');
   }).join('\n');
 }
@@ -984,9 +993,6 @@ function renderOnboardStats(state) {
       total += all.length;
       selMon += items.length; 
       totMon += all.length;
-      
-      // Debug logging for monitoring calculation
-      console.log(`Monitoring ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);
     });
     // Alerting
     (locationProviders.alerting||[]).forEach(function(prov){
@@ -999,25 +1005,16 @@ function renderOnboardStats(state) {
       total += all.length;
       selAl += items.length; 
       totAl += all.length;
-      
-      // Debug logging for alerting calculation
-      console.log(`Alerting ${prov} for ${cap}: selected=${items.length}, total=${all.length}, items=${items.join(',')}`);
     });
     // Reporting/Stip as binary yes/no, exclude N/A from denominator
     ['reporting','stip'].forEach(function(simple){
       const v = state['loc_' + loc + '_' + cap + '_' + simple];
       if (v === true) { selected += 1; total += 1; }
       else if (v === false) { total += 1; }
-      
-      // Debug logging for reporting/stip calculation
-      console.log(`${simple} for ${cap}: value=${v}, selected=${v === true ? 1 : 0}, total=${v === true || v === false ? 1 : 0}`);
     });
     out[cap] = total ? Math.round((selected/total)*100) + '%' : '—';
     out[cap + 'Mon'] = totMon ? Math.round((selMon/totMon)*100) + '%' : '—';
     out[cap + 'Al'] = totAl ? Math.round((selAl/totAl)*100) + '%' : '—';
-    
-    // Debug logging for final calculation
-    console.log(`${cap} calculation: selected=${selected}, total=${total}, selMon=${selMon}, totMon=${totMon}, selAl=${selAl}, totAl=${totAl}`);
   });
   updateOnboardUI(out);
 }

@@ -54,7 +54,7 @@ if (typeof URLSearchParams === 'undefined') {
 
 
 // New schema keys
-const META_KEYS = ["app_name", "po_name", "app_type", "app_type_other"];
+const META_KEYS = ["app_name", "role", "app_type", "app_type_other", "nar_id", "contact_email"];
 const YESNO_KEYS = [
   // SLO/SLA
   "slo_exists",
@@ -137,7 +137,9 @@ function secureClear() {
   if (!secureStorageAvailable()) return;
   try {
     window.localStorage.removeItem('secure_app_name');
-    window.localStorage.removeItem('secure_po_name');
+    window.localStorage.removeItem('secure_role');
+    window.localStorage.removeItem('secure_nar_id');
+    window.localStorage.removeItem('secure_contact_email');
   } catch (e) {}
 }
 
@@ -169,7 +171,9 @@ function getState() {
   const state = {};
   // Meta (keep sensitive values out of URL)
   state.app_name = secureGet('app_name');
-  state.po_name = secureGet('po_name');
+  state.role = secureGet('role');
+  state.nar_id = secureGet('nar_id');
+  state.contact_email = secureGet('contact_email');
   state.app_type = params.get('app_type') || '';
   state.app_type_other = params.get('app_type_other') || '';
   // Selected location
@@ -222,7 +226,7 @@ function getState() {
 function setAnswer(key, value) {
   const params = new URLSearchParams(location.search);
   // Handle sensitive fields by storing only in localStorage and stripping from URL
-  if (key === 'app_name' || key === 'po_name') {
+  if (key === 'app_name' || key === 'role' || key === 'nar_id' || key === 'contact_email') {
     secureSet(key, value);
     try {
       if (typeof params.delete === 'function') {
@@ -285,10 +289,10 @@ function setAnswer(key, value) {
 function generateAndSendCSV() {
   // Check if required fields are filled
   const appName = document.getElementById('app_name').value.trim();
-  const poName = document.getElementById('po_name').value.trim();
+  const role = document.getElementById('role').value;
   
-  if (!appName || !poName) {
-    alert('Please fill in both Application name and PO Name (marked with *) before generating CSV.');
+  if (!appName || !role) {
+    alert('Please fill in both Application name and Role (marked with *) before generating CSV.');
     return;
   }
   
@@ -369,7 +373,9 @@ Please find attached the SRE Readiness Assessment for ${appName}.
 
 Assessment Summary:
 - Application: ${appName}
-- PO Name: ${state.po_name}
+- Role: ${state.role || 'Not specified'}
+- NAR-ID: ${state.nar_id || 'Not specified'}
+- Contact Email: ${state.contact_email || 'Not specified'}
 - Application Type: ${state.app_type}${state.app_type === 'other' ? ' (' + state.app_type_other + ')' : ''}
 - Location: ${state.loc_selected || 'Not specified'}
 - Assessment Date: ${new Date().toLocaleDateString()}
@@ -417,11 +423,15 @@ function resetAll() {
   
   // Clear input fields directly
   const appNameInput = document.getElementById('app_name');
-  const poNameInput = document.getElementById('po_name');
+  const roleSelect = document.getElementById('role');
+  const narIdInput = document.getElementById('nar_id');
+  const contactEmailInput = document.getElementById('contact_email');
   const appTypeOtherInput = document.getElementById('app_type_other');
   
   if (appNameInput) appNameInput.value = '';
-  if (poNameInput) poNameInput.value = '';
+  if (roleSelect) roleSelect.value = '';
+  if (narIdInput) narIdInput.value = '';
+  if (contactEmailInput) contactEmailInput.value = '';
   if (appTypeOtherInput) appTypeOtherInput.value = '';
   
   // Reset app type selection
@@ -505,7 +515,9 @@ function convertToCSV(data) {
   
   // Add metadata
   rows.push(['Application Name', data.app_name || '']);
-  rows.push(['PO Name', data.po_name || '']);
+  rows.push(['Role', data.role || '']);
+  rows.push(['NAR-ID', data.nar_id || '']);
+  rows.push(['Contact Email', data.contact_email || '']);
   rows.push(['Application Type', data.app_type || '']);
   if (data.app_type === 'other') {
     rows.push(['Application Type (Other)', data.app_type_other || '']);
@@ -590,7 +602,9 @@ function collectAnswers() {
   const data = {};
   // meta (sensitive values from secure storage)
   data.app_name = secureGet('app_name') || '';
-  data.po_name = secureGet('po_name') || '';
+  data.role = secureGet('role') || '';
+  data.nar_id = secureGet('nar_id') || '';
+  data.contact_email = secureGet('contact_email') || '';
   data.app_type = params.get('app_type') || '';
   data.app_type_other = params.get('app_type_other') || '';
   // yes/no
@@ -665,9 +679,13 @@ function render() {
   hydrateSelections(state);
   // hydrate sensitive inputs from secure storage
   var appNameInput = document.getElementById('app_name');
-  var poNameInput = document.getElementById('po_name');
+  var roleSelect = document.getElementById('role');
+  var narIdInput = document.getElementById('nar_id');
+  var contactEmailInput = document.getElementById('contact_email');
   if (appNameInput && appNameInput.value !== state.app_name) appNameInput.value = state.app_name || '';
-  if (poNameInput && poNameInput.value !== state.po_name) poNameInput.value = state.po_name || '';
+  if (roleSelect && roleSelect.value !== state.role) roleSelect.value = state.role || '';
+  if (narIdInput && narIdInput.value !== state.nar_id) narIdInput.value = state.nar_id || '';
+  if (contactEmailInput && contactEmailInput.value !== state.contact_email) contactEmailInput.value = state.contact_email || '';
   renderProgress(state);
   updateDrillVisibility(state);
   // highlight selected location button
@@ -868,9 +886,9 @@ function renderProgress(state) {
   let answered = 0;
   
   // Required metadata fields (always count)
-  total += 4; // Application name, PO Name, Application Type, and Location
+  total += 4; // Application name, Role, Application Type, and Location
   if (state.app_name && state.app_name.trim()) answered += 1;
-  if (state.po_name && state.po_name.trim()) answered += 1;
+  if (state.role && state.role.trim()) answered += 1;
   if (state.app_type) answered += 1;
   if (state.loc_selected) answered += 1;
   
@@ -1072,7 +1090,9 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   });
   document.getElementById('app_name').addEventListener('input', function(e){ setAnswer('app_name', e.target.value); });
-  document.getElementById('po_name').addEventListener('input', function(e){ setAnswer('po_name', e.target.value); });
+  document.getElementById('role').addEventListener('change', function(e){ setAnswer('role', e.target.value); });
+  document.getElementById('nar_id').addEventListener('input', function(e){ setAnswer('nar_id', e.target.value); });
+  document.getElementById('contact_email').addEventListener('input', function(e){ setAnswer('contact_email', e.target.value); });
   document.getElementById('app_type_other').addEventListener('input', function(e){ setAnswer('app_type_other', e.target.value); });
 
   // initial render builds everything

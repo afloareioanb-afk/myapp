@@ -138,8 +138,26 @@
               <input id="app_name" name="app_name" type="text" placeholder="e.g., Payments Portal" autocomplete="off" required />
             </div>
             <div class="field">
-              <label for="po_name">PO Name <span class="required">*</span></label>
-              <input id="po_name" name="po_name" type="text" placeholder="Product Owner" autocomplete="off" required />
+              <label for="role">Role <span class="required">*</span></label>
+              <select id="role" name="role" required>
+                <option value="">Select a role</option>
+                <option value="ITAO">ITAO</option>
+                <option value="SRE">SRE</option>
+                <option value="PO">PO</option>
+                <option value="L2">L2</option>
+                <option value="L3">L3</option>
+                <option value="CSM">CSM</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="nar_id">NAR-ID</label>
+              <input id="nar_id" name="nar_id" type="text" placeholder="e.g., NAR-12345" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="contact_email">Contact Email</label>
+              <input id="contact_email" name="contact_email" type="email" placeholder="email@example.com" autocomplete="email" />
             </div>
           </div>
           <div class="field">

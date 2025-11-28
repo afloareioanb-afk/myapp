@@ -57,18 +57,18 @@ if (typeof URLSearchParams === 'undefined') {
 const META_KEYS = ["app_name", "role", "app_type", "app_type_other", "nar_id", "contact_email"];
 const YESNO_KEYS = [
   // SLO/SLA
-  "slo_exists",
+  "slo_exists", "slo_pdm",
   // DR
   "dr_plan", "dr_rto_rpo", "dr_tested",
   // Best Practices
-  "bp_runbooks", "bp_spof", "bp_noise", "bp_mttr",
+  "bp_runbooks", "bp_spof", "bp_noise", "bp_mttr", "bp_dependencies",
 ];
 
 
 
 const LOCATIONS = ["gcp", "onprem", "hybrid"];
 const CAPABILITIES = ["frontend", "backend", "apis", "mobile"];
-const CATEGORIES = ["monitoring", "alerting", "reporting", "stip"];
+const CATEGORIES = ["monitoring", "alerting", "reporting", "stip", "geneos", "lisi"];
 const PROVIDERS = {
   monitoring: ["newrelic", "splunk"],
   alerting: ["newrelic", "splunk"],
@@ -204,7 +204,7 @@ function getState() {
       state[k] = parsed;
              // drilldowns multi-select as CSV: loc_loc_cat_provider=item1|item2
        CATEGORIES.forEach(function(cat) {
-         if (cat === 'reporting' || cat === 'stip') return; // simple yes/no
+         if (cat === 'reporting' || cat === 'stip' || cat === 'geneos' || cat === 'lisi') return; // simple yes/no
          const locationProviders = getProvidersForLocation(loc);
          (locationProviders[cat]||[]).forEach(function(prov) {
            const dk = 'loc_' + loc + '_' + cap + '_' + cat + '_' + prov;
@@ -212,11 +212,19 @@ function getState() {
            state[dk] = raw ? raw.split('|') : [];
          });
        });
-      // simple yes/no for reporting & stip
-      ['reporting','stip'].forEach(function(simple){
+      // simple yes/no for reporting, stip, geneos & lisi
+      ['reporting','stip','geneos','lisi'].forEach(function(simple){
         const sk = 'loc_' + loc + '_' + cap + '_' + simple;
         const sv = params.get(sk);
         state[sk] = sv === '1' ? true : sv === '0' ? false : sv === 'na' ? 'na' : null;
+        // Handle provider drill-downs for stip, geneos, and lisi
+        if (simple === 'stip' || simple === 'geneos' || simple === 'lisi') {
+          ['newrelic', 'splunk'].forEach(function(prov){
+            const dk = 'loc_' + loc + '_' + cap + '_' + simple + '_' + prov;
+            const raw = params.get(dk);
+            state[dk] = raw ? raw.split('|') : [];
+          });
+        }
       });
     });
   });
@@ -252,16 +260,16 @@ function setAnswer(key, value) {
   }
   
   // Auto-set drill-down questions to N/A when capability is NO
-  // Only trigger for main capability keys (not sub-questions like reporting/stip)
+  // Only trigger for main capability keys (not sub-questions like reporting/stip/geneos/lisi)
   if (key.includes('loc_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis')) && 
-      !key.includes('_reporting') && !key.includes('_stip')) {
+      !key.includes('_reporting') && !key.includes('_stip') && !key.includes('_geneos') && !key.includes('_lisi')) {
     const parts = key.split('_');
     const loc = parts[1];
     const cap = parts[2];
     
     if (value === false) {
-      // When capability is NO, set Reporting and Stip integration to N/A
-      ['reporting', 'stip'].forEach(function(simple) {
+      // When capability is NO, set Reporting, Stip, Geneos and Lisi integration to N/A
+      ['reporting', 'stip', 'geneos', 'lisi'].forEach(function(simple) {
         const drillKey = 'loc_' + loc + '_' + cap + '_' + simple;
         params.set(drillKey, 'na');
       });
@@ -526,6 +534,7 @@ function convertToCSV(data) {
   
   // Add SLO/SLA
   rows.push(['SLO/SLA Structure Exists', data.slo_exists ? 'Yes' : 'No']);
+  rows.push(['PDM Documented', data.slo_pdm ? 'Yes' : (data.slo_pdm === 'na' ? 'N/A' : 'No')]);
   if (data.slo_exists) {
     rows.push(['  Latency SLO', data.slo_latency ? 'Yes' : 'No']);
     rows.push(['  Availability SLO', data.slo_availability ? 'Yes' : 'No']);
@@ -542,10 +551,11 @@ function convertToCSV(data) {
   rows.push([]);
   
   // Add Best Practices
-  rows.push(['Runbooks/Support Guides', data.bp_runbooks ? 'Yes' : 'No']);
-  rows.push(['Critical Failures Documented', data.bp_spof ? 'Yes' : 'No']);
-  rows.push(['Alert Noise Documented', data.bp_noise ? 'Yes' : 'No']);
-  rows.push(['MTTR Tracked', data.bp_mttr ? 'Yes' : 'No']);
+  rows.push(['Runbooks/Support Guides', data.bp_runbooks ? 'Yes' : (data.bp_runbooks === 'na' ? 'N/A' : 'No')]);
+  rows.push(['Critical Failures Documented', data.bp_spof ? 'Yes' : (data.bp_spof === 'na' ? 'N/A' : 'No')]);
+  rows.push(['Alert Noise Documented', data.bp_noise ? 'Yes' : (data.bp_noise === 'na' ? 'N/A' : 'No')]);
+  rows.push(['MTTR Tracked', data.bp_mttr ? 'Yes' : (data.bp_mttr === 'na' ? 'N/A' : 'No')]);
+  rows.push(['Direct Dependencies Documented', data.bp_dependencies ? 'Yes' : (data.bp_dependencies === 'na' ? 'N/A' : 'No')]);
   rows.push([]);
   
   // Add Locations
@@ -580,11 +590,15 @@ function convertToCSV(data) {
             });
           }
           
-          // Add reporting and stip
+          // Add reporting, stip, geneos and lisi
           const repKey = 'loc_' + loc + '_' + cap + '_reporting';
           const stipKey = 'loc_' + loc + '_' + cap + '_stip';
-          rows.push(['    Reporting', data[repKey] ? 'Yes' : 'No']);
-          rows.push(['    Stip Integration', data[stipKey] ? 'Yes' : 'No']);
+          const geneosKey = 'loc_' + loc + '_' + cap + '_geneos';
+          const lisiKey = 'loc_' + loc + '_' + cap + '_lisi';
+          rows.push(['    Reporting', data[repKey] ? 'Yes' : (data[repKey] === 'na' ? 'N/A' : 'No')]);
+          rows.push(['    Stip Integration', data[stipKey] ? 'Yes' : (data[stipKey] === 'na' ? 'N/A' : 'No')]);
+          rows.push(['    Geneos Integration', data[geneosKey] ? 'Yes' : (data[geneosKey] === 'na' ? 'N/A' : 'No')]);
+          rows.push(['    Lisi Integration', data[lisiKey] ? 'Yes' : (data[lisiKey] === 'na' ? 'N/A' : 'No')]);
         }
       });
     });
@@ -633,10 +647,19 @@ function collectAnswers() {
         const raw = params.get(ak);
         data.locations[loc][cap + '_alerting'][prov] = raw ? raw.split('|') : [];
       });
-      ['reporting','stip'].forEach(function(simple){
+      ['reporting','stip','geneos','lisi'].forEach(function(simple){
         const sk = 'loc_' + loc + '_' + cap + '_' + simple;
         const sv = params.get(sk);
         data.locations[loc][cap + '_' + simple] = sv === '1' ? true : sv === '0' ? false : sv === 'na' ? 'na' : null;
+        // Handle provider drill-downs for stip, geneos, and lisi
+        if (simple === 'stip' || simple === 'geneos' || simple === 'lisi') {
+          data.locations[loc][cap + '_' + simple + '_providers'] = {};
+          ['newrelic', 'splunk'].forEach(function(prov){
+            const dk = 'loc_' + loc + '_' + cap + '_' + simple + '_' + prov;
+            const raw = params.get(dk);
+            data.locations[loc][cap + '_' + simple + '_providers'][prov] = raw ? raw.split('|') : [];
+          });
+        }
       });
     });
   });
@@ -840,11 +863,99 @@ function buildLocations() {
       stipOptions.appendChild(stipGrid);
       stipDrill.appendChild(stipOptions);
 
+      // Geneos integration (yes/no)
+      const geneos = document.createElement('div');
+      geneos.className = 'question';
+      geneos.innerHTML = '<label>Geneos Integration</label><div class="options" data-key="loc_' + loc + '_' + cap + '_geneos"></div>';
+      
+      // Geneos integration drill-down options
+      const geneosDrill = document.createElement('div');
+      geneosDrill.className = 'drill';
+      geneosDrill.style.marginLeft = '8px';
+      geneosDrill.style.display = 'none';
+      geneosDrill.setAttribute('data-drill-for', 'loc_' + loc + '_' + cap + '_geneos');
+      
+      const geneosOptions = document.createElement('div');
+      geneosOptions.className = 'question';
+      geneosOptions.innerHTML = '<label>Geneos Integration Options</label>';
+      const geneosGrid = document.createElement('div');
+      geneosGrid.className = 'provider-grid';
+      
+      // Add New Relic and Splunk options for Geneos integration
+      ['newrelic', 'splunk'].forEach(function(prov){
+        const provWrap = document.createElement('div');
+        provWrap.className = 'provider';
+        provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
+        const chips = document.createElement('div');
+        chips.className = 'chipset';
+        
+        // Add a simple "Enabled" option for each provider
+        const chip = document.createElement('span');
+        chip.className = 'pill';
+        chip.textContent = 'Enabled';
+        chip.dataset.key = 'loc_' + loc + '_' + cap + '_geneos_' + prov;
+        chip.dataset.item = 'Enabled';
+        chip.addEventListener('click', function(){ toggleChip('loc_' + loc + '_' + cap + '_geneos_' + prov, 'Enabled'); });
+        chips.appendChild(chip);
+        
+        provWrap.appendChild(chips);
+        geneosGrid.appendChild(provWrap);
+      });
+      
+      geneosOptions.appendChild(geneosGrid);
+      geneosDrill.appendChild(geneosOptions);
+
+      // Lisi integration (yes/no)
+      const lisi = document.createElement('div');
+      lisi.className = 'question';
+      lisi.innerHTML = '<label>Lisi Integration</label><div class="options" data-key="loc_' + loc + '_' + cap + '_lisi"></div>';
+      
+      // Lisi integration drill-down options
+      const lisiDrill = document.createElement('div');
+      lisiDrill.className = 'drill';
+      lisiDrill.style.marginLeft = '8px';
+      lisiDrill.style.display = 'none';
+      lisiDrill.setAttribute('data-drill-for', 'loc_' + loc + '_' + cap + '_lisi');
+      
+      const lisiOptions = document.createElement('div');
+      lisiOptions.className = 'question';
+      lisiOptions.innerHTML = '<label>Lisi Integration Options</label>';
+      const lisiGrid = document.createElement('div');
+      lisiGrid.className = 'provider-grid';
+      
+      // Add New Relic and Splunk options for Lisi integration
+      ['newrelic', 'splunk'].forEach(function(prov){
+        const provWrap = document.createElement('div');
+        provWrap.className = 'provider';
+        provWrap.innerHTML = '<h4>' + prettyProv(prov) + '</h4>';
+        const chips = document.createElement('div');
+        chips.className = 'chipset';
+        
+        // Add a simple "Enabled" option for each provider
+        const chip = document.createElement('span');
+        chip.className = 'pill';
+        chip.textContent = 'Enabled';
+        chip.dataset.key = 'loc_' + loc + '_' + cap + '_lisi_' + prov;
+        chip.dataset.item = 'Enabled';
+        chip.addEventListener('click', function(){ toggleChip('loc_' + loc + '_' + cap + '_lisi_' + prov, 'Enabled'); });
+        chips.appendChild(chip);
+        
+        provWrap.appendChild(chips);
+        lisiGrid.appendChild(provWrap);
+      });
+      
+      lisiOptions.appendChild(lisiGrid);
+      lisiDrill.appendChild(lisiOptions);
+
       drill.appendChild(mon);
       drill.appendChild(al);
       drill.appendChild(rep);
       drill.appendChild(stip);
       drill.appendChild(stipDrill);
+      drill.appendChild(geneos);
+      drill.appendChild(geneosDrill);
+      drill.appendChild(lisi);
+      drill.appendChild(lisiDrill);
 
       locCard.appendChild(capWrap);
       locCard.appendChild(drill);
@@ -922,21 +1033,21 @@ function renderProgress(state) {
       if (v===true||v===false||v==='na') answered += 1;
       
       // Sub-questions always count in total
-      total += 2; // reporting and stip
+      total += 4; // reporting, stip, geneos and lisi
       if (v === true) {
         // When capability is YES, count the actual answers to sub-questions
-        ['reporting','stip'].forEach(function(simple){
+        ['reporting','stip','geneos','lisi'].forEach(function(simple){
           const key = 'loc_' + state.loc_selected + '_' + cap + '_' + simple;
           const sv = state[key];
           if (sv===true||sv===false||sv==='na') answered += 1;
         });
       } else if (v === false || v === 'na') {
         // When capability is NO or N/A, sub-questions are auto-set to N/A and count as answered
-        answered += 2;
+        answered += 4;
       }
       
       // Monitoring and alerting items are NOT counted towards completion
-      // Only Reporting and Stip integration questions count (handled above)
+      // Only Reporting, Stip, Geneos and Lisi integration questions count (handled above)
       // The individual monitoring/alerting items are optional and don't affect progress
     });
   }
@@ -959,11 +1070,11 @@ function updateDrillVisibility(state) {
       const loc = parts[1];
       const cap = parts[2];
       
-      // Check if this is a Stip integration drill-down
-      if (parts.length >= 4 && parts[3] === 'stip') {
-        // Show Stip options when Stip integration is Yes
-        const stipKey = 'loc_' + loc + '_' + cap + '_stip';
-        enabled = state[stipKey] === true;
+      // Check if this is a Stip/Geneos/Lisi integration drill-down
+      if (parts.length >= 4 && (parts[3] === 'stip' || parts[3] === 'geneos' || parts[3] === 'lisi')) {
+        // Show integration options when integration is Yes
+        const integrationKey = 'loc_' + loc + '_' + cap + '_' + parts[3];
+        enabled = state[integrationKey] === true;
       } else {
         // Regular capability drill-down
         enabled = state.locations && state.locations[loc] && state.locations[loc][cap] === true;
@@ -1024,8 +1135,8 @@ function renderOnboardStats(state) {
       selAl += items.length; 
       totAl += all.length;
     });
-    // Reporting/Stip as binary yes/no, exclude N/A from denominator
-    ['reporting','stip'].forEach(function(simple){
+    // Reporting/Stip/Geneos/Lisi as binary yes/no, exclude N/A from denominator
+    ['reporting','stip','geneos','lisi'].forEach(function(simple){
       const v = state['loc_' + loc + '_' + cap + '_' + simple];
       if (v === true) { selected += 1; total += 1; }
       else if (v === false) { total += 1; }

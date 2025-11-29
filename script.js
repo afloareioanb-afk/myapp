@@ -813,6 +813,23 @@ function hydrateSelections(state) {
     if (val === true && pills[0]) pills[0].classList.add('selected');
     if (val === false && pills[1]) pills[1].classList.add('selected');
     if (val === 'na' && pills[2]) pills[2].classList.add('selected');
+    
+    // Update capability header color based on selection
+    if (key && key.startsWith('loc_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis') || key.includes('_mobile')) &&
+        !key.includes('_reporting') && !key.includes('_stip') && !key.includes('_geneos') && !key.includes('_lisi') && 
+        !key.includes('_monitoring') && !key.includes('_alerting')) {
+      const capHeader = container.closest('.cap-header');
+      if (capHeader) {
+        capHeader.classList.remove('yes', 'no', 'na');
+        if (val === true) {
+          capHeader.classList.add('yes');
+        } else if (val === false) {
+          capHeader.classList.add('no');
+        } else if (val === 'na') {
+          capHeader.classList.add('na');
+        }
+      }
+    }
   });
 
   // hydrate provider chips selection state
@@ -1054,6 +1071,26 @@ function toggleChip(key, item) {
     location.hash = newUrl;
   }
   render();
+  
+  // Update capability header color immediately if this is a capability selection
+  if (key && key.startsWith('loc_') && (key.includes('_frontend') || key.includes('_backend') || key.includes('_apis') || key.includes('_mobile')) &&
+      !key.includes('_reporting') && !key.includes('_stip') && !key.includes('_geneos') && !key.includes('_lisi') && 
+      !key.includes('_monitoring') && !key.includes('_alerting')) {
+    const container = document.querySelector('.options[data-key="' + key + '"]');
+    if (container) {
+      const capHeader = container.closest('.cap-header');
+      if (capHeader) {
+        capHeader.classList.remove('yes', 'no', 'na');
+        if (value === true) {
+          capHeader.classList.add('yes');
+        } else if (value === false) {
+          capHeader.classList.add('no');
+        } else if (value === 'na') {
+          capHeader.classList.add('na');
+        }
+      }
+    }
+  }
 }
 
 function prettyProv(k){ 

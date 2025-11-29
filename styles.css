@@ -49,6 +49,154 @@ body:before {
   z-index: -1;
 }
 
+/* Floating text background elements */
+.floating-text-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.floating-text {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.08);
+  font-size: 100px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 20px;
+  white-space: nowrap;
+  -webkit-animation: float 20s infinite linear;
+  animation: float 20s infinite linear;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.floating-text[data-location="DB"] {
+  top: 10%;
+  left: 5%;
+  -webkit-animation-duration: 35s;
+  animation-duration: 35s;
+  -webkit-animation-delay: 0s;
+  animation-delay: 0s;
+}
+
+.floating-text[data-location="DB"]:nth-of-type(2) {
+  top: 25%;
+  left: 5%;
+  -webkit-animation-duration: 40s;
+  animation-duration: 40s;
+  -webkit-animation-delay: 7s;
+  animation-delay: 7s;
+}
+
+.floating-text[data-location="PB"] {
+  top: 40%;
+  left: 5%;
+  -webkit-animation-duration: 38s;
+  animation-duration: 38s;
+  -webkit-animation-delay: 14s;
+  animation-delay: 14s;
+}
+
+.floating-text[data-location="PB"]:nth-of-type(4) {
+  top: 55%;
+  left: 5%;
+  -webkit-animation-duration: 42s;
+  animation-duration: 42s;
+  -webkit-animation-delay: 21s;
+  animation-delay: 21s;
+}
+
+.floating-text[data-location="MM"] {
+  top: 70%;
+  left: 5%;
+  -webkit-animation-duration: 36s;
+  animation-duration: 36s;
+  -webkit-animation-delay: 28s;
+  animation-delay: 28s;
+}
+
+.floating-text[data-location="MM"]:nth-of-type(6) {
+  top: 85%;
+  left: 5%;
+  -webkit-animation-duration: 39s;
+  animation-duration: 39s;
+  -webkit-animation-delay: 35s;
+  animation-delay: 35s;
+}
+
+.floating-text[data-location="NB"] {
+  top: 15%;
+  left: 5%;
+  -webkit-animation-duration: 37s;
+  animation-duration: 37s;
+  -webkit-animation-delay: 42s;
+  animation-delay: 42s;
+}
+
+.floating-text[data-location="NB"]:nth-of-type(8) {
+  top: 30%;
+  left: 5%;
+  -webkit-animation-duration: 41s;
+  animation-duration: 41s;
+  -webkit-animation-delay: 49s;
+  animation-delay: 49s;
+}
+
+.floating-text[data-location="OPRA"] {
+  top: 45%;
+  left: 5%;
+  -webkit-animation-duration: 34s;
+  animation-duration: 34s;
+  -webkit-animation-delay: 56s;
+  animation-delay: 56s;
+}
+
+.floating-text[data-location="OPRA"]:nth-of-type(10) {
+  top: 60%;
+  left: 5%;
+  -webkit-animation-duration: 43s;
+  animation-duration: 43s;
+  -webkit-animation-delay: 63s;
+  animation-delay: 63s;
+}
+
+@-webkit-keyframes float {
+  0% {
+    -webkit-transform: translateX(0) translateY(0);
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    -webkit-transform: translateX(calc(50vw - 50%)) translateY(-30px);
+    transform: translateX(calc(50vw - 50%)) translateY(-30px);
+  }
+  100% {
+    -webkit-transform: translateX(calc(100vw - 100%)) translateY(0);
+    transform: translateX(calc(100vw - 100%)) translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    -webkit-transform: translateX(0) translateY(0);
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    -webkit-transform: translateX(calc(50vw - 50%)) translateY(-30px);
+    transform: translateX(calc(50vw - 50%)) translateY(-30px);
+  }
+  100% {
+    -webkit-transform: translateX(calc(100vw - 100%)) translateY(0);
+    transform: translateX(calc(100vw - 100%)) translateY(0);
+  }
+}
+
 /* sprockets (gears) */
 .sprockets { 
   position: fixed; 
@@ -368,7 +516,10 @@ body:before {
   text-shadow: 0 1px 2px rgba(255,107,107,0.5); 
 }
 
-.container {
+.container,
+.app-header {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 980px;
   margin: 0 auto;
@@ -727,11 +878,28 @@ body:before {
 
 .question.cap-header label {
   font-weight: 700;
-  color: #ff4444;
+  color: white;
   font-size: 18px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(255,68,68,0.3);
+  text-shadow: 0 0 8px rgba(255,255,255,0.3);
+  -webkit-transition: color 0.3s ease, text-shadow 0.3s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.question.cap-header.yes label {
+  color: #4ade80;
+  text-shadow: 0 0 8px rgba(74,222,128,0.5);
+}
+
+.question.cap-header.no label {
+  color: #f87171;
+  text-shadow: 0 0 8px rgba(248,113,113,0.5);
+}
+
+.question.cap-header.na label {
+  color: #60a5fa;
+  text-shadow: 0 0 8px rgba(96,165,250,0.5);
 }
 
 .provider-grid {

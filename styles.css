@@ -520,12 +520,13 @@ body:before {
 .app-header {
   position: relative;
   z-index: 1;
+}
+
+.container {
   width: 100%;
   max-width: 980px;
   margin: 0 auto;
-  padding: 0 16px 80px;
-  position: relative;
-  z-index: 1;
+  padding: 40px 16px 80px;
 }
 
 .card {

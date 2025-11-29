@@ -54,7 +54,7 @@ if (typeof URLSearchParams === 'undefined') {
 
 
 // New schema keys
-const META_KEYS = ["app_name", "role", "app_type", "app_type_other", "nar_id", "contact_email"];
+const META_KEYS = ["app_name", "role", "app_type", "app_type_other", "nar_id", "contact_email", "role_other"];
 const YESNO_KEYS = [
   // SLO/SLA
   "slo_exists", "slo_pdm",
@@ -140,6 +140,7 @@ function secureClear() {
     window.localStorage.removeItem('secure_role');
     window.localStorage.removeItem('secure_nar_id');
     window.localStorage.removeItem('secure_contact_email');
+    window.localStorage.removeItem('secure_role_other');
   } catch (e) {}
 }
 
@@ -189,6 +190,7 @@ function getState() {
   // Meta (keep sensitive values out of URL)
   state.app_name = secureGet('app_name');
   state.role = secureGet('role');
+  state.role_other = secureGet('role_other');
   state.nar_id = secureGet('nar_id');
   state.contact_email = secureGet('contact_email');
   state.app_type = params.get('app_type') || '';
@@ -252,7 +254,7 @@ function getState() {
 function setAnswer(key, value) {
   const params = new URLSearchParams(location.search);
   // Handle sensitive fields by storing only in localStorage and stripping from URL
-  if (key === 'app_name' || key === 'role' || key === 'nar_id' || key === 'contact_email') {
+  if (key === 'app_name' || key === 'role' || key === 'nar_id' || key === 'contact_email' || key === 'role_other') {
     secureSet(key, value);
     try {
       if (typeof params.delete === 'function') {
@@ -508,7 +510,7 @@ Please find attached the SRE Readiness Assessment for ${appName}.
 
 Assessment Summary:
 - Application: ${appName}
-- Role: ${state.role || 'Not specified'}
+- Role: ${state.role || 'Not specified'}${state.role === 'other' && state.role_other ? ' (' + state.role_other + ')' : ''}
 - NAR-ID: ${state.nar_id || 'Not specified'}
 - Contact Email: ${state.contact_email || 'Not specified'}
 - Application Type: ${state.app_type}${state.app_type === 'other' ? ' (' + state.app_type_other + ')' : ''}
@@ -559,6 +561,7 @@ function resetAll() {
   // Clear input fields directly
   const appNameInput = document.getElementById('app_name');
   const roleSelect = document.getElementById('role');
+  const roleOtherInput = document.getElementById('role_other');
   const narIdInput = document.getElementById('nar_id');
   const contactEmailInput = document.getElementById('contact_email');
   const appTypeOtherInput = document.getElementById('app_type_other');
@@ -566,10 +569,15 @@ function resetAll() {
   
   if (appNameInput) appNameInput.value = '';
   if (roleSelect) roleSelect.value = '';
+  if (roleOtherInput) roleOtherInput.value = '';
   if (narIdInput) narIdInput.value = '';
   if (contactEmailInput) contactEmailInput.value = '';
   if (appTypeOtherInput) appTypeOtherInput.value = '';
   if (otherMentionsTextarea) otherMentionsTextarea.value = '';
+  
+  // Reset role other field visibility
+  const roleOtherWrap = document.getElementById('role_other_wrap');
+  if (roleOtherWrap) roleOtherWrap.style.display = 'none';
   
   // Reset app type selection
   const typeSeg = document.getElementById('app_type_segmented');
@@ -653,6 +661,9 @@ function convertToCSV(data) {
   // Add metadata
   rows.push(['Application Name', data.app_name || '']);
   rows.push(['Role', data.role || '']);
+  if (data.role === 'other') {
+    rows.push(['Role (Other)', data.role_other || '']);
+  }
   rows.push(['NAR-ID', data.nar_id || '']);
   rows.push(['Contact Email', data.contact_email || '']);
   rows.push(['Application Type', data.app_type || '']);
@@ -752,6 +763,7 @@ function collectAnswers() {
   // meta (sensitive values from secure storage)
   data.app_name = secureGet('app_name') || '';
   data.role = secureGet('role') || '';
+  data.role_other = secureGet('role_other') || '';
   data.nar_id = secureGet('nar_id') || '';
   data.contact_email = secureGet('contact_email') || '';
   data.app_type = params.get('app_type') || '';
@@ -856,10 +868,16 @@ function render() {
   // hydrate sensitive inputs from secure storage
   var appNameInput = document.getElementById('app_name');
   var roleSelect = document.getElementById('role');
+  var roleOtherInput = document.getElementById('role_other');
+  var roleOtherWrap = document.getElementById('role_other_wrap');
   var narIdInput = document.getElementById('nar_id');
   var contactEmailInput = document.getElementById('contact_email');
   if (appNameInput && appNameInput.value !== state.app_name) appNameInput.value = state.app_name || '';
-  if (roleSelect && roleSelect.value !== state.role) roleSelect.value = state.role || '';
+  if (roleSelect && roleSelect.value !== state.role) {
+    roleSelect.value = state.role || '';
+    if (roleOtherWrap) roleOtherWrap.style.display = state.role === 'other' ? '' : 'none';
+  }
+  if (roleOtherInput && roleOtherInput.value !== state.role_other) roleOtherInput.value = state.role_other || '';
   if (narIdInput && narIdInput.value !== state.nar_id) narIdInput.value = state.nar_id || '';
   if (contactEmailInput && contactEmailInput.value !== state.contact_email) contactEmailInput.value = state.contact_email || '';
   var otherMentionsTextarea = document.getElementById('other_mentions');
@@ -1316,7 +1334,12 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   });
   document.getElementById('app_name').addEventListener('input', function(e){ setAnswer('app_name', e.target.value); });
-  document.getElementById('role').addEventListener('change', function(e){ setAnswer('role', e.target.value); });
+  document.getElementById('role').addEventListener('change', function(e){ 
+    setAnswer('role', e.target.value);
+    const roleOtherWrap = document.getElementById('role_other_wrap');
+    if (roleOtherWrap) roleOtherWrap.style.display = e.target.value === 'other' ? '' : 'none';
+  });
+  document.getElementById('role_other').addEventListener('input', function(e){ setAnswer('role_other', e.target.value); });
   document.getElementById('nar_id').addEventListener('input', function(e){ setAnswer('nar_id', e.target.value); });
   document.getElementById('contact_email').addEventListener('input', function(e){ setAnswer('contact_email', e.target.value); });
   document.getElementById('app_type_other').addEventListener('input', function(e){ setAnswer('app_type_other', e.target.value); });

@@ -147,7 +147,11 @@
                 <option value="L2">L2</option>
                 <option value="L3">L3</option>
                 <option value="CSM">CSM</option>
+                <option value="other">Other</option>
               </select>
+            </div>
+            <div class="field" id="role_other_wrap" style="display:none;margin-top:8px;">
+              <input id="role_other" name="role_other" type="text" placeholder="Specify other role" autocomplete="off" />
             </div>
           </div>
           <div class="grid2">
@@ -160,17 +164,20 @@
               <input id="contact_email" name="contact_email" type="email" placeholder="email@db.com" autocomplete="email" required />
             </div>
           </div>
-          <div class="field">
-            <label>Application type</label>
-            <div class="segmented" id="app_type_segmented">
-              <button type="button" data-type="java">Java</button>
-              <button type="button" data-type="nodejs">Node.js</button>
-              <button type="button" data-type="other">Other</button>
+            <div class="field">
+              <label>Application type</label>
+              <div class="segmented" id="app_type_segmented">
+                <button type="button" data-type="java">Java</button>
+                <button type="button" data-type="nodejs">Node.js</button>
+                <button type="button" data-type="other">Other</button>
+              </div>
+              <div class="field" id="app_type_other_wrap" style="display:none;margin-top:8px;">
+                <input id="app_type_other" name="app_type_other" type="text" placeholder="Specify other type" autocomplete="off" />
+              </div>
             </div>
-            <div class="field" id="app_type_other_wrap" style="display:none;margin-top:8px;">
-              <input id="app_type_other" name="app_type_other" type="text" placeholder="Specify other type" autocomplete="off" />
+            <div class="field" id="role_other_wrap" style="display:none;margin-top:8px;">
+              <input id="role_other" name="role_other" type="text" placeholder="Specify other role" autocomplete="off" />
             </div>
-          </div>
         </section>
 
         <section class="card" id="locations">

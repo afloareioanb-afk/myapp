@@ -76,7 +76,7 @@ const PROVIDERS = {
 
 // Updated monitoring items - removed "SYNT tests" and "BROWSER (dashboard)" from backend and APIs
 const MON_ITEMS = {
-  newrelic: ["APM (dashboard)", "INFRA (dashboard)", "SYNT", "Other"],
+  newrelic: ["APM (dashboard)", "INFRA (dashboard)", "Golden Signals (dashboard)", "SYNT", "Other"],
   splunk: [
     "Response times","HTTP Response Codes","Error Rate","Throughput","Availability","Anomalies","DB connections","Restarts/Uptime","Other"
   ],
@@ -316,9 +316,10 @@ function generateAndSendCSV() {
   // Check if required fields are filled
   const appName = document.getElementById('app_name').value.trim();
   const role = document.getElementById('role').value;
+  const narId = document.getElementById('nar_id').value.trim();
   
-  if (!appName || !role) {
-    alert('Please fill in both Application name and Role (marked with *) before generating CSV.');
+  if (!appName || !role || !narId) {
+    alert('Please fill in Application name, Role, and NAR-ID (marked with *) before generating CSV.');
     return;
   }
   
@@ -378,6 +379,9 @@ function getIncompleteItems(state) {
   }
   if (!state.role || !state.role.trim()) {
     incomplete.push('Role');
+  }
+  if (!state.nar_id || !state.nar_id.trim()) {
+    incomplete.push('NAR-ID');
   }
   if (!state.app_type) {
     incomplete.push('Application type');
@@ -1055,9 +1059,10 @@ function renderProgress(state) {
   let answered = 0;
   
   // Required metadata fields (always count)
-  total += 4; // Application name, Role, Application Type, and Location
+  total += 5; // Application name, Role, NAR-ID, Application Type, and Location
   if (state.app_name && state.app_name.trim()) answered += 1;
   if (state.role && state.role.trim()) answered += 1;
+  if (state.nar_id && state.nar_id.trim()) answered += 1;
   if (state.app_type) answered += 1;
   if (state.loc_selected) answered += 1;
   

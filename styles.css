@@ -1,6 +1,6 @@
 :root {
-  --bg: #070a1a;
-  --panel: #0f1533;
+  --bg: #0d1126;
+  --panel: #151b3d;
   --muted: #7c86b2;
   --text: #e7eaf6;
   --accent: #57a2ff;
@@ -64,10 +64,10 @@ body:before {
 .floating-text {
   position: absolute;
   color: rgba(255, 255, 255, 0.08);
-  font-size: 100px;
+  font-size: 33px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 20px;
+  letter-spacing: 7px;
   white-space: nowrap;
   -webkit-animation: float 20s infinite linear;
   animation: float 20s infinite linear;

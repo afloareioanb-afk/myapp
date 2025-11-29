@@ -326,6 +326,13 @@ function generateAndSendCSV() {
     return;
   }
   
+  // Validate email format - must end with @db.com
+  if (!contactEmail.endsWith('@db.com')) {
+    alert('Contact Email must end with @db.com');
+    document.getElementById('contact_email').focus();
+    return;
+  }
+  
   // Check if questionnaire is 100% complete
   const progressLabel = document.getElementById('progress-label');
   if (progressLabel && !progressLabel.textContent.includes('100%')) {
@@ -388,6 +395,8 @@ function getIncompleteItems(state) {
   }
   if (!state.contact_email || !state.contact_email.trim()) {
     incomplete.push('Contact Email');
+  } else if (!state.contact_email.endsWith('@db.com')) {
+    incomplete.push('Contact Email (must end with @db.com)');
   }
   if (!state.app_type) {
     incomplete.push('Application type');
@@ -474,22 +483,28 @@ function getIncompleteItems(state) {
 function updateSubmitButtonState(pct, state) {
   const submitBtn = document.getElementById('submit');
   
-  if (pct === 100) {
-    // Enable submit button when 100% complete
+  // Check email validity
+  const contactEmail = state && state.contact_email ? state.contact_email.trim() : '';
+  const isEmailValid = contactEmail && contactEmail.endsWith('@db.com');
+  
+  if (pct === 100 && isEmailValid) {
+    // Enable submit button when 100% complete and email is valid
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.classList.remove('disabled');
       submitBtn.title = 'Generate CSV and open email client';
     }
   } else {
-    // Disable submit button when not 100% complete
+    // Disable submit button when not 100% complete or email is invalid
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.classList.add('disabled');
       
       // Build detailed tooltip with incomplete items
       let tooltip = 'Complete all questions to enable CSV generation (' + pct + '% answered)';
-      if (state) {
+      if (!isEmailValid && contactEmail) {
+        tooltip = 'Contact Email must end with @db.com';
+      } else if (state) {
         const incomplete = getIncompleteItems(state);
         if (incomplete.length > 0) {
           tooltip += '\n\nMissing:\n• ' + incomplete.join('\n• ');
@@ -1341,7 +1356,20 @@ window.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('role_other').addEventListener('input', function(e){ setAnswer('role_other', e.target.value); });
   document.getElementById('nar_id').addEventListener('input', function(e){ setAnswer('nar_id', e.target.value); });
-  document.getElementById('contact_email').addEventListener('input', function(e){ setAnswer('contact_email', e.target.value); });
+  document.getElementById('contact_email').addEventListener('input', function(e){ 
+    const email = e.target.value.trim();
+    setAnswer('contact_email', email);
+    // Validate email format in real-time
+    const emailInput = e.target;
+    if (email && !email.endsWith('@db.com')) {
+      emailInput.setCustomValidity('Email must end with @db.com');
+    } else {
+      emailInput.setCustomValidity('');
+    }
+    // Update submit button state after email change
+    const state = getState();
+    renderProgress(state);
+  });
   document.getElementById('app_type_other').addEventListener('input', function(e){ setAnswer('app_type_other', e.target.value); });
   document.getElementById('other_mentions').addEventListener('input', function(e){ setAnswer('other_mentions', e.target.value); });
 

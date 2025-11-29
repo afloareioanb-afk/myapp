@@ -317,9 +317,10 @@ function generateAndSendCSV() {
   const appName = document.getElementById('app_name').value.trim();
   const role = document.getElementById('role').value;
   const narId = document.getElementById('nar_id').value.trim();
+  const contactEmail = document.getElementById('contact_email').value.trim();
   
-  if (!appName || !role || !narId) {
-    alert('Please fill in Application name, Role, and NAR-ID (marked with *) before generating CSV.');
+  if (!appName || !role || !narId || !contactEmail) {
+    alert('Please fill in Application name, Role, NAR-ID, and Contact Email (marked with *) before generating CSV.');
     return;
   }
   
@@ -382,6 +383,9 @@ function getIncompleteItems(state) {
   }
   if (!state.nar_id || !state.nar_id.trim()) {
     incomplete.push('NAR-ID');
+  }
+  if (!state.contact_email || !state.contact_email.trim()) {
+    incomplete.push('Contact Email');
   }
   if (!state.app_type) {
     incomplete.push('Application type');
@@ -1011,13 +1015,18 @@ function buildLocations() {
       lisi.className = 'question';
       lisi.innerHTML = '<label>Lisi Integration</label><div class="options" data-key="loc_' + loc + '_' + cap + '_lisi"></div>';
 
+      // Create horizontal container for Stip, Geneos, and Lisi integrations
+      const integrationsRow = document.createElement('div');
+      integrationsRow.className = 'integrations-row';
+      integrationsRow.appendChild(stip);
+      integrationsRow.appendChild(geneos);
+      integrationsRow.appendChild(lisi);
+
       drill.appendChild(mon);
       drill.appendChild(al);
       drill.appendChild(rep);
-      drill.appendChild(stip);
+      drill.appendChild(integrationsRow);
       drill.appendChild(stipDrill);
-      drill.appendChild(geneos);
-      drill.appendChild(lisi);
 
       locCard.appendChild(capWrap);
       locCard.appendChild(drill);
@@ -1059,10 +1068,11 @@ function renderProgress(state) {
   let answered = 0;
   
   // Required metadata fields (always count)
-  total += 5; // Application name, Role, NAR-ID, Application Type, and Location
+  total += 6; // Application name, Role, NAR-ID, Contact Email, Application Type, and Location
   if (state.app_name && state.app_name.trim()) answered += 1;
   if (state.role && state.role.trim()) answered += 1;
   if (state.nar_id && state.nar_id.trim()) answered += 1;
+  if (state.contact_email && state.contact_email.trim()) answered += 1;
   if (state.app_type) answered += 1;
   if (state.loc_selected) answered += 1;
   
